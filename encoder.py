@@ -271,7 +271,7 @@ class Encoder(nn.Module):
 
             #Maximum Due Date
             md = torch.max(x,dim=2)[0].view(batch, stack, 1).to(self.device)
-            
+            md = torch.where(md == 0., self.empty_priority, md).to(self.device)
             
 
             return torch.cat([min_due, top_val, is_well, is_target, stack_height, tier - stack_height,

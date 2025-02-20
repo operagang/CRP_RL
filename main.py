@@ -40,11 +40,12 @@ def main():
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     eval_data = Generator(args, eval=True) # n_samples = eval_batch_size * eval_batch_num
+    eval_data.data = torch.load('./eval_data.pt')
     clock = time.time()
     
     eval_wt, eval_reloc = eval(model, args, eval_data)
     clock = save_log(args, -1, None, eval_wt, eval_reloc, model, clock)
-    # solve_benchmarks(model, -1, args, ['random'])
+    solve_benchmarks(model, -1, args, ['random'])
     torch.save(eval_data.data, args.log_path + '/eval_data.pt')
 
     for epoch in range(args.epochs):
