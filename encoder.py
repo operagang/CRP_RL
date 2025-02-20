@@ -213,18 +213,20 @@ class MultiHeadAttentionLayer(nn.Module): #Self-Attention
         return x
 """
 class Encoder(nn.Module):
-    def __init__(self, device, embed_dim, n_layers, ff_hidden, n_heads):
+    def __init__(self, args):
         super().__init__()
-        self.device = device
+        self.device = args.device
         self.init_embed_dim  = 11
         self.empty_priority = 999
-        self.embed_dim = embed_dim
         self.fcs = nn.Sequential(
-                            nn.Linear(self.init_embed_dim, embed_dim//2), #bias = True by default
+                            nn.Linear(self.init_embed_dim, args.embed_dim//2), #bias = True by default
                             nn.ReLU(),
-                            nn.Linear(embed_dim//2, embed_dim)
+                            nn.Linear(args.embed_dim//2, args.embed_dim)
                         ).to(self.device)
-        self.encoder_layers = nn.ModuleList([MultiHeadAttentionLayer(n_heads, embed_dim,ff_hidden ) for _ in range(n_layers)])
+        self.encoder_layers = nn.ModuleList(
+            [MultiHeadAttentionLayer(args.n_heads, args.embed_dim, args.ff_hidden)
+            for _ in range(args.n_encode_layers)]
+        )
 
     def forward(self, x, n_rows, mask=None):
         batch,stack,tier = x.size()
@@ -253,7 +255,7 @@ class Encoder(nn.Module):
             stack_rows = stack_indices % n_rows + 1  # stack을 row로 변환
             stack_rows = stack_rows.unsqueeze(0).expand(batch, -1).to(self.device)  # (batch, num_stacks) 형태로 확장
             # ✅ target stack 찾기 (min_due == 1 인 곳)
-            target_mask = (min_due.squeeze(-1) == 1).to(self.device)  # shape: (batch, stack)
+            target_mask = is_target.squeeze(-1).bool()  # shape: (batch, stack)
             target_rows = stack_rows[target_mask]  # target stack의 row
             # ✅ target stack의 row와 각 stack의 row 차이 계산
             row_diff = torch.abs(stack_rows - target_rows.unsqueeze(-1)).float().to(self.device)  # (batch, stack) 크기

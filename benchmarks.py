@@ -1,8 +1,72 @@
+import time
 import os
 import torch
+import pandas as pd
 import numpy as np
+from generator import get_n_containers
 
-def find_and_process_file(folder_path, inst_type, n_bays, n_rows, n_tiers, target_id):
+
+def solve_benchmarks(model, epoch, args, instance_types):
+    clock = time.time()
+    model.eval()
+    model.decoder.set_sampler('greedy')
+
+    bays = [1,2,4,6,8,10]
+    rows = [16]
+    tiers = [6,8]
+    data_path = './Lee_instances'
+
+    for inst_type in instance_types:
+        idxs = range(1,6) if inst_type == 'random' else range(1,3)
+
+        data_names = []
+        wts = {}
+        moves = {}
+
+        for tier in tiers:
+            for row in rows:
+                for bay in bays:
+                    if tier == 8 and bay in [8, 10]:
+                        continue
+
+                    inputs, names = zip(*[
+                        find_and_process_file(data_path, inst_type, bay, row, tier, idx, no_print=True)
+                        for idx in idxs
+                    ])
+                    inputs = torch.cat(inputs)
+
+                    with torch.no_grad():
+                        wt, _, reloc = model(inputs.to(args.device), bay, row)
+                    
+                    name = names[0][:-8]
+                    data_names.append(name)
+                    wts[name] = wt.mean().item()
+                    moves[name] = reloc.mean().item() + get_n_containers(bay, row, tier)
+
+        if inst_type == 'random':
+            file_name1 = args.log_path + '/benchmark_WT(R).xlsx'
+            file_name2 = args.log_path + '/benchmark_moves(R).xlsx'
+        else:
+            file_name1 = args.log_path + '/benchmark_WT(U).xlsx'
+            file_name2 = args.log_path + '/benchmark_moves(U).xlsx'
+        
+        for file_name in [file_name1, file_name2]:
+            if not os.path.exists(file_name):  # 파일이 없을 때만 실행
+                df = pd.DataFrame(index=data_names)
+                df.to_excel(file_name)
+
+        df = pd.read_excel(file_name1, index_col=0)
+        df[f'Epoch {epoch+1}'] = df.index.map(wts)
+        df.to_excel(file_name1)
+
+        df = pd.read_excel(file_name2, index_col=0)
+        df[f'Epoch {epoch+1}'] = df.index.map(moves)
+        df.to_excel(file_name2)
+
+    print(f'Benchmark scoring 시간: {round(time.time() - clock, 1)}s')
+
+
+def find_and_process_file(folder_path, inst_type, n_bays, n_rows, n_tiers, target_id, no_print=False):
     # Build the search pattern based on inputs
     stacks_str = f"{n_rows:02d}"  # e.g., 16 stacks -> "16"
     tiers_str = f"{n_tiers:02d}"  # e.g., 6 tiers -> "06"
@@ -31,7 +95,8 @@ def find_and_process_file(folder_path, inst_type, n_bays, n_rows, n_tiers, targe
     
     # Assuming the first match is the target file
     target_file = matching_files[0]
-    print(f"Processing file: {target_file}")
+    if not no_print:
+        print(f"Processing file: {target_file}")
     
     file_path = os.path.join(folder_path, target_file)
     return parse_container_file(file_path, n_bays, n_rows, n_tiers), target_file

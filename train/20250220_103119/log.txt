@@ -1,0 +1,22 @@
+lr: 5e-06
+epochs: 1500
+batch_size: 1024
+batch_num: 100
+eval_batch_size: 1024
+eval_batch_num: 1
+eval_seed: 0
+embed_dim: 128
+n_encode_layers: 3
+n_heads: 8
+ff_hidden: 512
+tanh_c: 10
+n_bays: 2
+n_rows: 4
+n_tiers: 6
+instance_type: random
+objective: workingtime
+device: cuda:0
+log_path: ./train/20250220_103119
+--------------------
+Epoch: 0 | Train loss: None | Eval WT: 5067.374 | Eval moves: 70.256 | 1s
+Epoch: 1 | Train loss: -7.519464813542215 | Eval WT: 4346.134 | Eval moves: 65.446 | 295s

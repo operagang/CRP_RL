@@ -40,8 +40,8 @@ class Env():
             self.t_acc + (torch.abs(self.curr_bay - target_bay) * self.t_bay), 
             torch.tensor(0).to(self.device)
         ).to(self.device) + torch.abs(self.curr_row - target_row) * self.t_row
-        total_cost += torch.abs(target_row - torch.zeros_like(target_row).to(self.device)) * self.t_row + self.t_pd
-        total_cost *= self.retrieved
+        total_cost = total_cost + torch.abs(target_row - torch.zeros_like(target_row).to(self.device)) * self.t_row + self.t_pd
+        total_cost = total_cost * self.retrieved
 
         self.curr_bay = torch.where(
             self.retrieved,
@@ -70,13 +70,13 @@ class Env():
             torch.tensor(0).to(self.device)
         ).to(self.device) + (torch.abs(self.curr_row - source_row) * self.t_row)
 
-        total_cost += torch.where(
+        total_cost = total_cost + torch.where(
             source_bay != dest_bay, 
             self.t_acc + (torch.abs(source_bay - dest_bay) * self.t_bay), 
             torch.tensor(0).to(self.device)
         ).to(self.device) + (torch.abs(source_row - dest_row) * self.t_row) + self.t_pd
 
-        total_cost *= (1.0 - self.empty.type(torch.float64)).to(self.device)
+        total_cost = total_cost * (1.0 - self.empty.type(torch.float64)).to(self.device)
 
         self.curr_bay = dest_bay
         self.curr_row = dest_row
@@ -141,18 +141,18 @@ class Env():
             source_index.squeeze(-1).to(self.device), 
             source_ind.squeeze(-1).to(self.device)
         )
-        self.x.index_put_(input_index, torch.Tensor([0.]).to(self.device)).to(self.device)
+        self.x = self.x.index_put(input_index, torch.Tensor([0.]).to(self.device)).to(self.device)
         input_index = (
             torch.arange(self.batch).to(self.device), 
             dest_index.squeeze(-1).to(self.device), 
             dest_stack_len.squeeze(-1).to(self.device)
         )
-        self.x.index_put_(input_index, source_top_val.squeeze(-1)).to(self.device)
+        self.x = self.x.index_put(input_index, source_top_val.squeeze(-1)).to(self.device)
 
-        self.relocations += (1.0 - self.empty.type(torch.float64)).to(self.device)
+        self.relocations = self.relocations + (1.0 - self.empty.type(torch.float64)).to(self.device)
         total_cost = self._relocation_cost(source_index, dest_index)
         if not no_clear:
-            total_cost += self.clear()
+            total_cost = total_cost + self.clear()
 
         return total_cost
 

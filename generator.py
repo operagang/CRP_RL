@@ -1,14 +1,43 @@
+import time
 import torch
 import numpy as np
 from torch.utils.data import Dataset
 
+layout_to_n_containers = {
+    (1,16,6)    :70,
+    (2,16,6)    :140,
+    (4,16,6)    :280,
+    (6,16,6)    :430,
+    (8,16,6)    :570,
+    (10,16,6)   :720,
+    (1,16,8)    :90,
+    (2,16,8)    :190,
+    (4,16,8)    :380,
+    (6,16,8)    :570,
+
+    (2,4,6)     :35
+}
+
+def get_n_containers(n_bays, n_rows, n_tiers):
+    return layout_to_n_containers[n_bays, n_rows, n_tiers]
+
+
+
 class Generator(Dataset):
-    def __init__(self, n_samples, n_bays, n_rows, n_tiers, n_containers, instance_type):
-        self.n_samples = n_samples
-        self.n_stacks = n_bays * n_rows  # 전체 stack 개수
-        self.n_tiers = n_tiers
-        self.n_containers = n_containers
-        self.instance_type = instance_type
+    def __init__(self, args, seed=None, eval=False):
+        if not eval:
+            self.n_samples = args.batch_size * args.batch_num
+            self.seed = seed
+        else:
+            self.n_samples = args.eval_batch_size * args.eval_batch_num
+            self.seed = args.eval_seed
+        self.n_stacks = args.n_bays * args.n_rows  # 전체 stack 개수
+        self.n_tiers = args.n_tiers
+        self.n_containers = get_n_containers(args.n_bays, args.n_rows, args.n_tiers)
+        self.instance_type = args.instance_type
+        self.n_bays = args.n_bays
+        self.n_rows = args.n_rows
+        
 
         # ✅ 데이터 생성
         self.data = self.generate_data()
@@ -17,6 +46,11 @@ class Generator(Dataset):
         """
         랜덤한 컨테이너 배치를 생성하고, instance_type이 'upsidedown'이면 각 stack을 정렬.
         """
+        if self.seed is not None:
+            np.random.seed(self.seed)
+            torch.manual_seed(self.seed)
+
+        clock = time.time()
         data = torch.zeros((self.n_samples, self.n_stacks, self.n_tiers), dtype=torch.float32)  # ✅ FloatTensor 사용
 
         for i in range(self.n_samples):
@@ -46,7 +80,7 @@ class Generator(Dataset):
                 pass
             else:
                 raise ValueError('instance type 입력이 잘못됨')
-
+        print(f'{self.n_samples}개 data 생성시간: {round(time.time() - clock, 2)}초')
         return data
 
     def __len__(self):
@@ -58,4 +92,4 @@ class Generator(Dataset):
 
 
 if __name__ == '__main__':
-    dataset = Generator(n_samples=5, n_bays=2, n_rows=3, n_tiers=4, n_containers=15, instance_type='upsidedown')
+    dataset = Generator(args)

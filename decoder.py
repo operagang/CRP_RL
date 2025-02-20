@@ -12,31 +12,28 @@ from sampler import TopKSampler, CategoricalSampler, New_Sampler
 # from decoder_utils import concat_embedding, concat_graph_embedding
 
 class Decoder(nn.Module):
-    def __init__(self, 
-                 device, 
-                 embed_dim, 
-                 n_encode_layers, 
-                 n_heads,
-                 ff_hidden,
-                 tanh_c):
+    def __init__(self, args):
         super().__init__()
-        self.device = device
-        self.embed_dim = embed_dim
-        self.tanh_c = tanh_c
-        
-        self.encoder = Encoder(device=device, embed_dim=embed_dim, n_layers=n_encode_layers, ff_hidden=ff_hidden, n_heads=n_heads).to(self.device)
-        self.W_target = nn.Linear(embed_dim, embed_dim, bias=False)
-        self.W_global = nn.Linear(embed_dim, embed_dim, bias=False)
-        self.W_K1 = nn.Linear(embed_dim, embed_dim, bias=False)
-        self.W_K2 = nn.Linear(embed_dim, embed_dim, bias=False)
-        self.W_Q = nn.Linear(embed_dim, embed_dim, bias=False)
-        self.W_V = nn.Linear(embed_dim, embed_dim, bias=False)
-        self.MHA = MultiHeadAttention(n_heads, embed_dim, is_encoder=False)
+        self.device = args.device
+        self.tanh_c = args.tanh_c
+        self.samplers = {'greedy': TopKSampler(), 'sampling': CategoricalSampler()}
+        self.sampler = None
+
+        self.encoder = Encoder(args).to(self.device)
+        self.W_target = nn.Linear(args.embed_dim, args.embed_dim, bias=False)
+        self.W_global = nn.Linear(args.embed_dim, args.embed_dim, bias=False)
+        self.W_K1 = nn.Linear(args.embed_dim, args.embed_dim, bias=False)
+        self.W_K2 = nn.Linear(args.embed_dim, args.embed_dim, bias=False)
+        self.W_Q = nn.Linear(args.embed_dim, args.embed_dim, bias=False)
+        self.W_V = nn.Linear(args.embed_dim, args.embed_dim, bias=False)
+        self.MHA = MultiHeadAttention(args.n_heads, args.embed_dim, is_encoder=False)
 
 
+    def set_sampler(self, decode_type):
+        self.sampler = self.samplers[decode_type]
 
-    def forward(self, x, n_bays, n_rows, decode_type='sampling'):
-        sampler = {'greedy': TopKSampler(), 'sampling': CategoricalSampler(), 'new_sampling': New_Sampler()}.get(decode_type, None)
+
+    def forward(self, x, n_bays, n_rows):
 
         batch, max_stacks, max_tiers = x.size()
         
@@ -45,7 +42,7 @@ class Decoder(nn.Module):
 
         env = Env(self.device, x, n_bays, n_rows)
 
-        cost += env.clear()
+        cost = cost + env.clear()
 
         # encoder
         encoder_output = self.encoder(env.x, n_rows)
@@ -65,18 +62,16 @@ class Decoder(nn.Module):
 
             logits = torch.matmul(query_, key_.permute(0, 2, 1)).squeeze(1) / math.sqrt(query_.size(-1))
             logits = self.tanh_c * torch.tanh(logits)
-            logits -= mask.squeeze(-1) * 1e9
+            logits = logits - mask.squeeze(-1) * 1e9
             log_p = torch.log_softmax(logits, dim=1)
 
-            if decode_type == 'new_sampling':
-                actions = sampler(logits)
-            else:
-                actions = sampler(log_p)
+            actions = self.sampler(log_p)
 
-            log_p[env.empty, :] = 0 # 반드시 step 이전에
-            ll += torch.gather(input=log_p, dim=1, index=actions).squeeze(-1).to(self.device)
+            tmp_log_p = log_p.clone()
+            tmp_log_p[env.empty, :] = 0 # 반드시 step 이전에
+            ll = ll + torch.gather(input=tmp_log_p, dim=1, index=actions).squeeze(-1).to(self.device)
 
-            cost += env.step(dest_index=actions)
+            cost = cost + env.step(dest_index=actions)
 
             if env.all_empty():
                 break
