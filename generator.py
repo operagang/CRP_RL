@@ -37,50 +37,48 @@ class Generator(Dataset):
         self.instance_type = args.instance_type
         self.n_bays = args.n_bays
         self.n_rows = args.n_rows
-        
 
         # ✅ 데이터 생성
-        self.data = self.generate_data()
+        self.data = self.generate_data_vectorized()
 
-    def generate_data(self):
+    def generate_data_vectorized(self):
         """
-        랜덤한 컨테이너 배치를 생성하고, instance_type이 'upsidedown'이면 각 stack을 정렬.
+        NumPy 벡터 연산을 활용하여 빠르게 컨테이너 배치를 생성
         """
         if self.seed is not None:
             np.random.seed(self.seed)
             torch.manual_seed(self.seed)
 
         clock = time.time()
-        data = torch.zeros((self.n_samples, self.n_stacks, self.n_tiers), dtype=torch.float32)  # ✅ FloatTensor 사용
+        data = np.zeros((self.n_samples, self.n_stacks, self.n_tiers), dtype=np.float32)
 
-        for i in range(self.n_samples):
-            # 1~n_containers 의 수를 랜덤한 순서로 생성 (float으로 변환)
-            container_sequence = (np.random.permutation(self.n_containers) + 1).astype(np.float32)  
+        # ✅ 컨테이너 순서를 한 번에 벡터 연산으로 생성
+        container_sequences = np.tile(np.arange(1, self.n_containers + 1), (self.n_samples, 1))
+        np.apply_along_axis(np.random.shuffle, 1, container_sequences)
 
-            # ✅ 컨테이너를 하나씩 랜덤한 스택에 배치
-            stack_fill_counts = np.zeros(self.n_stacks, dtype=int)  # 각 stack에 현재 채워진 개수
+        # ✅ 스택을 랜덤하게 배정 (벡터 연산 활용)
+        stack_fill_counts = np.zeros((self.n_samples, self.n_stacks), dtype=int)
+        for j in range(self.n_containers):
+            valid_stacks = stack_fill_counts < self.n_tiers  # 공간이 있는 스택
+            selected_stacks = np.array([
+                np.random.choice(np.where(valid_stacks[i])[0]) for i in range(self.n_samples)
+            ])
 
-            for container in container_sequence:
-                valid_stacks = np.where(stack_fill_counts < self.n_tiers)[0]  # 아직 공간이 있는 stack 선택
-                if len(valid_stacks) == 0 and stack_fill_counts.sum() != self.n_containers:
-                    raise ValueError('stack이 가득 참')
-                
-                selected_stack = np.random.choice(valid_stacks)  # 랜덤한 stack 선택
-                tier_position = stack_fill_counts[selected_stack]  # 해당 stack의 채울 위치
-                data[i, selected_stack, tier_position] = torch.tensor(container, dtype=torch.float32)  # 컨테이너 배치 (float32)
-                stack_fill_counts[selected_stack] += 1  # 해당 stack에 채운 개수 증가
+            tier_positions = stack_fill_counts[np.arange(self.n_samples), selected_stacks]
+            data[np.arange(self.n_samples), selected_stacks, tier_positions] = container_sequences[:, j]
+            stack_fill_counts[np.arange(self.n_samples), selected_stacks] += 1
 
-            # ✅ instance_type이 'upsidedown'이면 각 stack을 오름차순 정렬
-            if self.instance_type == 'upsidedown':
-                for s in range(self.n_stacks):
-                    nonzero_values = data[i, s][data[i, s] > 0]  # 0이 아닌 값만 추출
-                    sorted_values = torch.sort(nonzero_values)[0]  # 0이 아닌 값만 정렬
-                    data[i, s, :len(sorted_values)] = sorted_values  # 정렬된 값 삽입, 나머지는 그대로 유지
-            elif self.instance_type == 'random':
-                pass
-            else:
-                raise ValueError('instance type 입력이 잘못됨')
-        print(f'{self.n_samples}개 data 생성시간: {round(time.time() - clock, 2)}초')
+        # ✅ instance_type이 'upsidedown'이면 각 stack을 정렬
+        if self.instance_type == 'upsidedown':
+            mask = data > 0  # 0이 아닌 위치 찾기
+            sorted_data = np.sort(np.where(mask, data, np.inf), axis=-1)  # 0이 아닌 값 정렬, 0은 유지
+            sorted_data[sorted_data == np.inf] = 0  # 다시 0으로 복원
+            data[:] = sorted_data  # 원본 데이터 업데이트
+
+        # ✅ PyTorch Tensor로 변환
+        data = torch.tensor(data, dtype=torch.float32)
+        print(f'{self.n_samples}개 data 생성시간 (벡터화): {round(time.time() - clock, 2)}초')
+
         return data
 
     def __len__(self):
@@ -91,5 +89,35 @@ class Generator(Dataset):
 
 
 
+
 if __name__ == '__main__':
-    dataset = Generator(args)
+    import argparse
+    from datetime import datetime
+
+    args = argparse.Namespace(
+        lr = 0.000001,
+        epochs = 1500,
+        batch_size = 512*2, # 256
+        batch_num = 100, # 20
+        eval_batch_size = 512*2, # 256
+        eval_batch_num = 1, # 5
+        eval_seed = 0,
+        embed_dim = 128,
+        n_encode_layers = 3,
+        n_heads = 8,
+        ff_hidden = 512,
+        tanh_c = 10,
+        n_bays = 2,
+        n_rows = 4,
+        n_tiers = 6,
+        instance_type = 'upsidedown',
+        objective = 'workingtime', # or relocations
+        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu'),
+        log_path = f"./train/{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+    )
+
+    gen = Generator(args, eval=True)
+    print(gen.data[0])
+
+    a = torch.load('./train/20250220_103119/eval_data.pt')
+    print(a[0])
