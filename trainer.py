@@ -9,7 +9,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from model import Model
-from generator import Generator, get_n_containers
+from generator import Generator
 
 
 def save_log(args, epoch, loss, wt, reloc, model, clock):
@@ -22,7 +22,7 @@ def save_log(args, epoch, loss, wt, reloc, model, clock):
             f.write('--------------------\n')
     new_clock = time.time()
     message = f'Epoch: {epoch+1} | Train loss: {loss} | Eval WT: {round(wt, 3)} | Eval moves: '\
-            + f'{round(reloc + get_n_containers(args.n_bays, args.n_rows, args.n_tiers), 3)} '\
+            + f'{round(reloc + args.n_containers, 3)} '\
             + f'| {round(new_clock-clock)}s'
     with open(args.log_path + '/log.txt', 'a') as f:
         f.write(message + '\n')
@@ -39,16 +39,26 @@ def get_loss(args, wt, ll, reloc):
     else:
         raise ValueError('obj 오류')
     
-    obj_mean = obj.mean()
-    obj_std = obj.std(unbiased=False)  # 작은 배치에서도 안정적이도록 `unbiased=False` 사용
-    norm_obj = (obj - obj_mean) / (obj_std + 1e-8)  # 0으로 나누는 문제 방지
-
-    return (norm_obj * ll).mean()
+    if args.baseline is None:
+        return (obj * ll).mean()
+    elif args.baseline == 'pomo':
+        obj_reshaped = obj.view(args.batch_size, args.pomo_size)
+        obj_mean = obj_reshaped.mean(dim=1, keepdim=True)
+        obj_adjusted = (obj_reshaped - obj_mean).view(obj.shape[0])
+        return (obj_adjusted * ll).mean()
+    # else:
+    #     obj_mean = obj.mean()
+    #     obj_std = obj.std(unbiased=False)  # 작은 배치에서도 안정적이도록 `unbiased=False` 사용
+    #     norm_obj = (obj - obj_mean) / (obj_std + 1e-8)  # 0으로 나누는 문제 방지
+    #     return (norm_obj * ll).mean()
 
 
 def train(model, optimizer, args):
     model.train()
-    model.decoder.set_sampler('greedy')
+    if args.baseline == 'pomo':
+        model.decoder.set_sampler('sampling')
+    else:
+        model.decoder.set_sampler('greedy')
 
     dataset = Generator(args) # n_samples = batch_size * batch_num
     dataloader = DataLoader(dataset=dataset, batch_size=args.batch_size, shuffle=True)
@@ -57,7 +67,11 @@ def train(model, optimizer, args):
 
     for batch in tbar:
 
-        wt, ll, reloc = model(batch.to(args.device), dataset.n_bays, dataset.n_rows)
+        if args.baseline == 'pomo':
+            batch = batch.unsqueeze(1).expand(batch.shape[0], args.pomo_size, batch.shape[1], batch.shape[2]).reshape(batch.shape[0] * args.pomo_size, batch.shape[1], batch.shape[2])
+            wt, ll, reloc = model(batch.to(args.device), dataset.n_bays, dataset.n_rows)
+        else:
+            wt, ll, reloc = model(batch.to(args.device), dataset.n_bays, dataset.n_rows)
 
         loss = get_loss(args, wt, ll, reloc)
 

@@ -3,7 +3,23 @@ import os
 import torch
 import pandas as pd
 import numpy as np
-from generator import get_n_containers
+
+
+layout_to_n_containers = {
+    (1,16,6)    :70,
+    (2,16,6)    :140,
+    (4,16,6)    :280,
+    (6,16,6)    :430,
+    (8,16,6)    :570,
+    (10,16,6)   :720,
+    (1,16,8)    :90,
+    (2,16,8)    :190,
+    (4,16,8)    :380,
+    (6,16,8)    :570
+}
+
+def get_n_containers(n_bays, n_rows, n_tiers):
+    return layout_to_n_containers[n_bays, n_rows, n_tiers]
 
 
 def solve_benchmarks(model, epoch, args, instance_types):

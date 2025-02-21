@@ -12,22 +12,33 @@ from benchmarks import solve_benchmarks
 
 args = argparse.Namespace(
     lr = 0.000001,
-    epochs = 1500,
-    batch_size = 512*2, # 256
+    epochs = 500,
+
+    batch_size = 64, # 256
     batch_num = 100, # 20
+
+    baseline = 'pomo', # or None, rollout
+    pomo_size = 16,
+    
     eval_batch_size = 512*2, # 256
     eval_batch_num = 1, # 5
     eval_seed = 0,
-    embed_dim = 128,
-    n_encode_layers = 3,
-    n_heads = 8,
-    ff_hidden = 512,
-    tanh_c = 10,
+
+    empty_priority = 999, # or any integer
+    
+    n_containers = 35,
     n_bays = 2,
     n_rows = 4,
     n_tiers = 6,
     instance_type = 'random',
     objective = 'workingtime', # or relocations
+
+    embed_dim = 128,
+    n_encode_layers = 3,
+    n_heads = 8,
+    ff_hidden = 512,
+    tanh_c = 10,
+
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu'),
     log_path = f"./train/{datetime.now().strftime('%Y%m%d_%H%M%S')}",
 )
@@ -61,9 +72,9 @@ def main():
 if __name__ == "__main__":
     
     lrs = [
-        # 1e-05
+        1e-05,
         5e-06,
-        # 1e-06,
+        1e-06,
         # 5e-07,
         # 1e-07,
         # 5e-08

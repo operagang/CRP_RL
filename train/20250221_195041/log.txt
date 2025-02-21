@@ -1,0 +1,25 @@
+lr: 5e-06
+epochs: 10000
+batch_size: 1024
+batch_num: 100
+eval_batch_size: 1024
+eval_batch_num: 1
+eval_seed: 0
+baseline: pomo
+pomo_size: 16
+empty_priority: 999
+n_containers: 35
+n_bays: 2
+n_rows: 4
+n_tiers: 6
+instance_type: random
+objective: workingtime
+embed_dim: 128
+n_encode_layers: 3
+n_heads: 8
+ff_hidden: 512
+tanh_c: 10
+device: cuda:0
+log_path: ./train/20250221_195041
+--------------------
+Epoch: 0 | Train loss: None | Eval WT: 6060.73 | Eval moves: 86.363 | 2s

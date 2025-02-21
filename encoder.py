@@ -217,7 +217,7 @@ class Encoder(nn.Module):
         super().__init__()
         self.device = args.device
         self.init_embed_dim  = 11
-        self.empty_priority = 999
+        self.empty_priority = args.empty_priority
         self.fcs = nn.Sequential(
                             nn.Linear(self.init_embed_dim, args.embed_dim//2), #bias = True by default
                             nn.ReLU(),
@@ -230,12 +230,17 @@ class Encoder(nn.Module):
 
     def forward(self, x, n_rows, mask=None):
         batch,stack,tier = x.size()
-        assert stack*tier+1 < self.empty_priority, "empty_priority 보다 컨테이너 수가 더 많음"
-        def en(x, tier):
+        if self.empty_priority is None:
+            empty_priority = torch.sum(x > 0, dim=[1,2]).view(x.shape[0], 1, 1) + 1
+        else:
+            assert stack*tier+1 < self.empty_priority, "empty_priority 보다 컨테이너 수가 더 많음"
+            empty_priority = torch.full((x.shape[0], 1, 1), self.empty_priority).to(self.device)
+
+        def en(x, tier, empty_prio):
             len_mask = torch.where(x > 0., 1, 0).to(self.device)
             stack_len = torch.sum(len_mask, dim=2).to(self.device)
             # total_len = torch.sum(stack_len+1, dim=1).view(batch, 1, 1).repeat(1, stack, tier).to(torch.float32) + 1
-            change_empty = torch.where(x == 0., self.empty_priority, x).to(self.device)
+            change_empty = torch.where(x == 0., empty_prio, x).to(self.device)
             min_due = torch.min(change_empty, dim=2)[0].view(batch, stack, 1).to(self.device)
 
             #Top Due
@@ -271,14 +276,14 @@ class Encoder(nn.Module):
 
             #Maximum Due Date
             md = torch.max(x,dim=2)[0].view(batch, stack, 1).to(self.device)
-            md = torch.where(md == 0., self.empty_priority, md).to(self.device)
+            md = torch.where(md == 0., empty_prio, md).to(self.device)
             
 
             return torch.cat([min_due, top_val, is_well, is_target, stack_height, tier - stack_height,
                               stack_rows.unsqueeze(-1), row_diff,
                               stack_bays.unsqueeze(-1), bay_diff,
                               md], dim=2).to(self.device)
-        x = en(x, tier).to(self.device)
+        x = en(x, tier, empty_priority).to(self.device)
         x = self.fcs(x)
         
         for layer in self.encoder_layers:

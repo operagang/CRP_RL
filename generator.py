@@ -3,24 +3,6 @@ import torch
 import numpy as np
 from torch.utils.data import Dataset
 
-layout_to_n_containers = {
-    (1,16,6)    :70,
-    (2,16,6)    :140,
-    (4,16,6)    :280,
-    (6,16,6)    :430,
-    (8,16,6)    :570,
-    (10,16,6)   :720,
-    (1,16,8)    :90,
-    (2,16,8)    :190,
-    (4,16,8)    :380,
-    (6,16,8)    :570,
-
-    (2,4,6)     :35
-}
-
-def get_n_containers(n_bays, n_rows, n_tiers):
-    return layout_to_n_containers[n_bays, n_rows, n_tiers]
-
 
 
 class Generator(Dataset):
@@ -33,7 +15,7 @@ class Generator(Dataset):
             self.seed = args.eval_seed
         self.n_stacks = args.n_bays * args.n_rows  # 전체 stack 개수
         self.n_tiers = args.n_tiers
-        self.n_containers = get_n_containers(args.n_bays, args.n_rows, args.n_tiers)
+        self.n_containers = args.n_containers
         self.instance_type = args.instance_type
         self.n_bays = args.n_bays
         self.n_rows = args.n_rows
