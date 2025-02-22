@@ -1,0 +1,26 @@
+lr: 5e-06
+epochs: 500
+batch_num: 2
+for_loop_num: 32
+batch_size: 64
+baseline: pomo
+pomo_size: 16
+eval_batch_size: 1024
+eval_path: ./eval_data(280,4,16,6).pt
+eval_n_bays: 4
+eval_n_rows: 16
+empty_priority: 999
+n_containers: 280
+n_bays: 4
+n_rows: 16
+n_tiers: 6
+instance_type: random
+objective: workingtime
+embed_dim: 128
+n_encode_layers: 3
+n_heads: 8
+ff_hidden: 512
+tanh_c: 10
+device: cuda:0
+log_path: ./train/20250222_230339
+--------------------

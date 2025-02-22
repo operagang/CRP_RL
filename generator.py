@@ -10,7 +10,7 @@ class Generator(Dataset):
         # ✅ 데이터 생성
         if load_data is None:
             if not eval:
-                self.n_samples = args.batch_size * args.batch_num * args.for_loop_num
+                self.n_samples = args.batch_size * args.batch_num
                 self.seed = seed
             else:
                 self.n_samples = args.eval_batch_size * args.eval_batch_num

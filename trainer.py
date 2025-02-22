@@ -44,7 +44,7 @@ def get_loss(args, wt, ll, reloc):
     if args.baseline is None:
         return (obj * ll).mean()
     elif args.baseline == 'pomo':
-        obj_reshaped = obj.view(args.batch_size, args.pomo_size)
+        obj_reshaped = obj.view(args.batch_size // args.mini_batch_num, args.pomo_size)
         obj_mean = obj_reshaped.mean(dim=1, keepdim=True)
         obj_adjusted = (obj_reshaped - obj_mean).view(obj.shape[0])
         return (obj_adjusted * ll).mean()
@@ -62,33 +62,34 @@ def train(model, optimizer, args):
     else:
         model.decoder.set_sampler('greedy')
 
-    dataset = Generator(args) # n_samples = batch_num * for_loop_num * batch_size
-    dataloader = DataLoader(dataset=dataset, batch_size=args.for_loop_num * args.batch_size, shuffle=True)
+    dataset = Generator(args) # n_samples = batch_num * batch_size
+    dataloader = DataLoader(dataset=dataset, batch_size=args.batch_size, shuffle=True)
     tbar = tqdm(dataloader)
     losses = []
     optimizer.zero_grad()
 
-    for batches in tbar: # batch_num
+    for batch in tbar: # batch_num
         accumulated_loss = 0.0
 
-        for i in range(args.for_loop_num):
-            start_idx = i * args.batch_size
-            end_idx = (i + 1) * args.batch_size
-            batch = batches[start_idx:end_idx]  # (batch_size, ...)
+        for i in range(args.mini_batch_num):
+            assert args.batch_size % args.mini_batch_num == 0.0
+            start_idx = i * (args.batch_size // args.mini_batch_num)
+            end_idx = (i + 1) * (args.batch_size // args.mini_batch_num)
+            mini = batch[start_idx:end_idx]  # (batch_size, ...)
 
             if args.baseline == 'pomo':
-                batch_expanded = batch.unsqueeze(1).expand(batch.shape[0], args.pomo_size, batch.shape[1], batch.shape[2])
-                batch_expanded = batch_expanded.reshape(batch.shape[0] * args.pomo_size, batch.shape[1], batch.shape[2])
-                wt, ll, reloc = model(batch_expanded.to(args.device), dataset.n_bays, dataset.n_rows)
+                mini_expanded = mini.unsqueeze(1).expand(mini.shape[0], args.pomo_size, mini.shape[1], mini.shape[2])
+                mini_expanded = mini_expanded.reshape(mini.shape[0] * args.pomo_size, mini.shape[1], mini.shape[2])
+                wt, ll, reloc = model(mini_expanded.to(args.device), dataset.n_bays, dataset.n_rows)
             else:
-                wt, ll, reloc = model(batch.to(args.device), dataset.n_bays, dataset.n_rows)
+                wt, ll, reloc = model(mini.to(args.device), dataset.n_bays, dataset.n_rows)
 
-            loss = get_loss(args, wt, ll, reloc) / args.for_loop_num  # Gradient Accumulation을 위한 평균화
+            loss = get_loss(args, wt, ll, reloc) / args.mini_batch_num  # Gradient Accumulation을 위한 평균화
             loss.backward()  # `loss.backward()`는 여기서 실행
             accumulated_loss += loss.item()  # Loss 저장
 
         nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0, norm_type=2)  # Gradient Clipping
-        optimizer.step()  # `for_loop_num`번 누적한 후 한 번만 실행
+        optimizer.step()  # `mini_batch_num`번 누적한 후 한 번만 실행
         optimizer.zero_grad()  # Gradient 초기화
 
         losses.append(accumulated_loss)
