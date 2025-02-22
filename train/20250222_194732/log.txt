@@ -1,0 +1,34 @@
+lr: 5e-06
+epochs: 500
+batch_size: 64
+batch_num: 100
+baseline: pomo
+pomo_size: 16
+eval_batch_size: 1024
+eval_batch_num: 1
+eval_seed: 0
+empty_priority: 999
+n_containers: 35
+n_bays: 2
+n_rows: 4
+n_tiers: 6
+instance_type: random
+objective: workingtime
+embed_dim: 128
+n_encode_layers: 3
+n_heads: 8
+ff_hidden: 512
+tanh_c: 10
+device: cuda:0
+log_path: ./train/20250222_194732
+--------------------
+Epoch: 0 | Train loss: None | Eval WT: 5252.331 | Eval moves: 73.548 | 1s
+Epoch: 1 | Train loss: -1459.3712587759544 | Eval WT: 4255.033 | Eval moves: 61.645 | 155s
+Epoch: 2 | Train loss: -519.1122400864954 | Eval WT: 4187.37 | Eval moves: 61.146 | 131s
+Epoch: 3 | Train loss: -330.1955467025231 | Eval WT: 4079.346 | Eval moves: 60.905 | 124s
+Epoch: 4 | Train loss: -305.5425500549756 | Eval WT: 4059.693 | Eval moves: 60.861 | 122s
+Epoch: 5 | Train loss: -325.8354622652182 | Eval WT: 3919.975 | Eval moves: 60.763 | 123s
+Epoch: 6 | Train loss: -416.8067187683279 | Eval WT: 3688.883 | Eval moves: 61.587 | 125s
+Epoch: 7 | Train loss: -431.2289844650297 | Eval WT: 3510.903 | Eval moves: 62.92 | 130s
+Epoch: 8 | Train loss: -410.66964091685344 | Eval WT: 3372.066 | Eval moves: 64.388 | 135s
+Epoch: 9 | Train loss: -356.9797628059009 | Eval WT: 3318.685 | Eval moves: 65.053 | 142s

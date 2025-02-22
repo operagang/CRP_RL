@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 
 
 class Generator(Dataset):
-    def __init__(self, args, seed=None, eval=False):
+    def __init__(self, args, seed=None, eval=False, load_data=None):
         if not eval:
             self.n_samples = args.batch_size * args.batch_num
             self.seed = seed
@@ -22,7 +22,10 @@ class Generator(Dataset):
         self.device = args.device
 
         # ✅ 데이터 생성
-        self.data = self.generate_data_vectorized()
+        if load_data is None:
+            self.data = self.generate_data_vectorized()
+        else:
+            self.data = torch.load(load_data)
 
     # def generate_data_vectorized(self):
     #     """
@@ -102,7 +105,7 @@ class Generator(Dataset):
             sorted_data[sorted_data == torch.inf] = 0  # 다시 0으로 복원
             data[:] = sorted_data  # 원본 데이터 업데이트
 
-        print(f'{self.n_samples}개 data 생성시간 (완전 GPU): {round(time.time() - clock, 2)}초')
+        print(f'{self.n_samples}개 data 생성시간: {round(time.time() - clock, 2)}초')
 
         return data
 

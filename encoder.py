@@ -250,7 +250,7 @@ class Encoder(nn.Module):
             #Well-Located
             is_well = torch.where(min_due >= top_val, 1., 0.).to(self.device)
             #Is target
-            is_target = torch.where(min_due==1., 1., 0.).to(self.device)
+            is_target = torch.where((min_due == 1) & (stack_len.unsqueeze(-1) > 0), 1., 0.).to(self.device)
             is_target[torch.where(torch.sum(is_target, dim=1)==0)[0],0] +=1 #All_Empty인 곳비워져있는곳은 첫번째 스택을target으로 지정
             #Stack_Height
             stack_height = stack_len.view(batch,stack,1)
@@ -259,7 +259,7 @@ class Encoder(nn.Module):
             stack_indices = torch.arange(stack).to(self.device)  # 0, 1, 2, ..., num_stacks-1
             stack_rows = stack_indices % n_rows + 1  # stack을 row로 변환
             stack_rows = stack_rows.unsqueeze(0).expand(batch, -1).to(self.device)  # (batch, num_stacks) 형태로 확장
-            # ✅ target stack 찾기 (min_due == 1 인 곳)
+            # ✅ target stack 찾기
             target_mask = is_target.squeeze(-1).bool()  # shape: (batch, stack)
             target_rows = stack_rows[target_mask]  # target stack의 row
             # ✅ target stack의 row와 각 stack의 row 차이 계산
@@ -276,8 +276,8 @@ class Encoder(nn.Module):
 
             #Maximum Due Date
             md = torch.max(x,dim=2)[0].view(batch, stack, 1).to(self.device)
-            md = torch.where(md == 0., empty_prio, md).to(self.device)
-            
+            # md = torch.where(md == 0., empty_prio, md).to(self.device)
+
 
             return torch.cat([min_due, top_val, is_well, is_target, stack_height, tier - stack_height,
                               stack_rows.unsqueeze(-1), row_diff,
@@ -285,7 +285,7 @@ class Encoder(nn.Module):
                               md], dim=2).to(self.device)
         x = en(x, tier, empty_priority).to(self.device)
         x = self.fcs(x)
-        
+
         for layer in self.encoder_layers:
             x = layer(x, mask)
 

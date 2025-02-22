@@ -12,14 +12,16 @@ from model import Model
 from generator import Generator
 
 
+def set_log(args):
+    os.makedirs(args.log_path)
+    os.makedirs(args.log_path + '/models')
+    with open(args.log_path + '/log.txt', 'w') as f:
+        for key, value in vars(args).items():
+            f.write(f"{key}: {value}\n")
+        f.write('--------------------\n')
+
+
 def save_log(args, epoch, loss, wt, reloc, model, clock):
-    if epoch == -1:
-        os.makedirs(args.log_path)
-        os.makedirs(args.log_path + '/models')
-        with open(args.log_path + '/log.txt', 'w') as f:
-            for key, value in vars(args).items():
-                f.write(f"{key}: {value}\n")
-            f.write('--------------------\n')
     new_clock = time.time()
     message = f'Epoch: {epoch+1} | Train loss: {loss} | Eval WT: {round(wt, 3)} | Eval moves: '\
             + f'{round(reloc + args.n_containers, 3)} '\
