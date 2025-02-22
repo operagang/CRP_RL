@@ -15,21 +15,22 @@ args = argparse.Namespace(
     lr = 0.000001,
     epochs = 500,
 
-    batch_size = 64, # 256
     batch_num = 100, # 20
+    for_loop_num = 32,
+    batch_size = 2, # 256
 
     baseline = 'pomo', # or None, rollout
     pomo_size = 16,
-    
+
     eval_batch_size = 512*2, # 256
     eval_batch_num = 1, # 5
     eval_seed = 0,
 
     empty_priority = 999, # or any integer
-    
-    n_containers = 35,
-    n_bays = 2,
-    n_rows = 4,
+
+    n_containers = 280,
+    n_bays = 4, # 4
+    n_rows = 16, # 16
     n_tiers = 6,
     instance_type = 'random',
     objective = 'workingtime', # or relocations
@@ -55,7 +56,7 @@ def main():
     clock = time.time()
 
     ### load evaluation data ###
-    eval_data = Generator(args, eval=True, load_data='./eval_data.pt')
+    eval_data = Generator(args, load_data='./eval_data.pt', load_data_size=(2,4))
     torch.save(eval_data.data, args.log_path + '/eval_data.pt')
 
     ### test random model ###

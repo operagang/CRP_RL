@@ -6,26 +6,28 @@ from torch.utils.data import Dataset
 
 
 class Generator(Dataset):
-    def __init__(self, args, seed=None, eval=False, load_data=None):
-        if not eval:
-            self.n_samples = args.batch_size * args.batch_num
-            self.seed = seed
-        else:
-            self.n_samples = args.eval_batch_size * args.eval_batch_num
-            self.seed = args.eval_seed
-        self.n_stacks = args.n_bays * args.n_rows  # 전체 stack 개수
-        self.n_tiers = args.n_tiers
-        self.n_containers = args.n_containers
-        self.instance_type = args.instance_type
-        self.n_bays = args.n_bays
-        self.n_rows = args.n_rows
-        self.device = args.device
-
+    def __init__(self, args, seed=None, eval=False, load_data=None, load_data_size=None):
         # ✅ 데이터 생성
         if load_data is None:
+            if not eval:
+                self.n_samples = args.batch_size * args.batch_num * args.for_loop_num
+                self.seed = seed
+            else:
+                self.n_samples = args.eval_batch_size * args.eval_batch_num
+                self.seed = args.eval_seed
+            self.n_stacks = args.n_bays * args.n_rows  # 전체 stack 개수
+            self.n_tiers = args.n_tiers
+            self.n_containers = args.n_containers
+            self.instance_type = args.instance_type
+            self.n_bays = args.n_bays
+            self.n_rows = args.n_rows
+            self.device = args.device
             self.data = self.generate_data_vectorized()
         else:
             self.data = torch.load(load_data)
+            self.n_bays = load_data_size[0]
+            self.n_rows = load_data_size[1]
+            self.n_samples = self.data.shape[0]
 
     # def generate_data_vectorized(self):
     #     """
@@ -125,29 +127,26 @@ if __name__ == '__main__':
     from datetime import datetime
 
     args = argparse.Namespace(
-        lr = 0.000001,
-        epochs = 1500,
         batch_size = 512*2, # 256
         batch_num = 100, # 20
         eval_batch_size = 512*2, # 256
         eval_batch_num = 1, # 5
         eval_seed = 0,
-        embed_dim = 128,
-        n_encode_layers = 3,
-        n_heads = 8,
-        ff_hidden = 512,
-        tanh_c = 10,
-        n_bays = 2,
-        n_rows = 4,
+        n_containers = 280,
+        n_bays = 4,
+        n_rows = 16,
         n_tiers = 6,
-        instance_type = 'upsidedown',
+        instance_type = 'random',
         objective = 'workingtime', # or relocations
-        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu'),
-        log_path = f"./train/{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     )
 
-    gen = Generator(args)
+    gen = Generator(args, eval=True)
+    print(gen.data.shape)
     print(gen.data[0])
 
-    a = torch.load('./train/20250220_103119/eval_data.pt')
-    print(a[0])
+    torch.save(gen.data, './eval_data(280,4,16,6).pt')
+
+    data = torch.load('./eval_data(280,4,16,6).pt')
+    print(data.shape)
+    print(data[0])

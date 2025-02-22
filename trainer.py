@@ -62,27 +62,36 @@ def train(model, optimizer, args):
     else:
         model.decoder.set_sampler('greedy')
 
-    dataset = Generator(args) # n_samples = batch_size * batch_num
-    dataloader = DataLoader(dataset=dataset, batch_size=args.batch_size, shuffle=True)
+    dataset = Generator(args) # n_samples = batch_num * for_loop_num * batch_size
+    dataloader = DataLoader(dataset=dataset, batch_size=args.for_loop_num * args.batch_size, shuffle=True)
     tbar = tqdm(dataloader)
     losses = []
+    optimizer.zero_grad()
 
-    for batch in tbar:
+    for batches in tbar: # batch_num
+        accumulated_loss = 0.0
 
-        if args.baseline == 'pomo':
-            batch = batch.unsqueeze(1).expand(batch.shape[0], args.pomo_size, batch.shape[1], batch.shape[2]).reshape(batch.shape[0] * args.pomo_size, batch.shape[1], batch.shape[2])
-            wt, ll, reloc = model(batch.to(args.device), dataset.n_bays, dataset.n_rows)
-        else:
-            wt, ll, reloc = model(batch.to(args.device), dataset.n_bays, dataset.n_rows)
+        for i in range(args.for_loop_num):
+            start_idx = i * args.batch_size
+            end_idx = (i + 1) * args.batch_size
+            batch = batches[start_idx:end_idx]  # (batch_size, ...)
 
-        loss = get_loss(args, wt, ll, reloc)
+            if args.baseline == 'pomo':
+                batch_expanded = batch.unsqueeze(1).expand(batch.shape[0], args.pomo_size, batch.shape[1], batch.shape[2])
+                batch_expanded = batch_expanded.reshape(batch.shape[0] * args.pomo_size, batch.shape[1], batch.shape[2])
+                wt, ll, reloc = model(batch_expanded.to(args.device), dataset.n_bays, dataset.n_rows)
+            else:
+                wt, ll, reloc = model(batch.to(args.device), dataset.n_bays, dataset.n_rows)
 
-        optimizer.zero_grad()
-        loss.backward()
-        nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0, norm_type=2)
-        optimizer.step()
+            loss = get_loss(args, wt, ll, reloc) / args.for_loop_num  # Gradient Accumulation을 위한 평균화
+            loss.backward()  # `loss.backward()`는 여기서 실행
+            accumulated_loss += loss.item()  # Loss 저장
 
-        losses.append(loss.item())
+        nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0, norm_type=2)  # Gradient Clipping
+        optimizer.step()  # `for_loop_num`번 누적한 후 한 번만 실행
+        optimizer.zero_grad()  # Gradient 초기화
+
+        losses.append(accumulated_loss)
         tbar.set_description('Train loss: %.5f' % (np.mean(losses)))
 
     return np.mean(losses)
