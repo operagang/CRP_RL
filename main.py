@@ -4,10 +4,10 @@ import os
 import argparse
 import torch
 import torch.optim as optim
-from model import Model
-from generator import Generator
-from trainer import train, eval, save_log, set_log
-from benchmarks import solve_benchmarks
+from model.model import Model
+from generator.generator import Generator
+from trainer import train, eval, save_log, set_log, initialize, load_eval_data
+from benchmarks.benchmarks import solve_benchmarks
 
 
 
@@ -15,28 +15,31 @@ args = argparse.Namespace(
     lr = 0.000001,
     epochs = 500,
 
-    batch_num = 2, # 20
-    batch_size = 64, # 256
-    mini_batch_num = 32,
+    batch_num = 100,
+    batch_size = 64,
+    mini_batch_num = 1,
 
-    baseline = 'pomo', # or None, rollout
+    baseline = 'pomo', # or None
     pomo_size = 16,
 
-    eval_batch_size = 512*2, # 256
-    # eval_batch_num = 1, # 5
-    # eval_seed = 0,
-    eval_path = './eval_data(280,4,16,6).pt',
-    eval_n_bays = 4,
-    eval_n_rows = 16,
+    eval_path = './generator/eval_data/eval_data(35,2,4,6).pt',
+    eval_batch_size = 1024,
 
-    empty_priority = 999, # or any integer
+    empty_priority = None, # or any integer
+    norm_priority = True,
+    add_fill_ratio = True,
+    norm_layout = False,
+    add_layout_ratio = False,
+    add_travel_time = False,
 
-    n_containers = 280,
-    n_bays = 4, # 4
-    n_rows = 16, # 16
+    n_containers = 35,
+    n_bays = 2,
+    n_rows = 4,
     n_tiers = 6,
     instance_type = 'random',
     objective = 'workingtime', # or relocations
+
+    load_model_path = None,
 
     embed_dim = 128,
     n_encode_layers = 3,
@@ -45,22 +48,15 @@ args = argparse.Namespace(
     tanh_c = 10,
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu'),
-    log_path = f"./train/{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+    log_path = f"./results/{datetime.now().strftime('%Y%m%d_%H%M%S')}",
 )
 
 
 
 
 def main():
-    ### 건들지마 ###
-    model = Model(args).to(args.device)
-    optimizer = optim.Adam(model.parameters(), lr=args.lr)
-    set_log(args)
-    clock = time.time()
-
-    ### load evaluation data ###
-    eval_data = Generator(args, load_data=args.eval_path, load_data_size=(args.eval_n_bays, args.eval_n_rows))
-    torch.save(eval_data.data, args.log_path + '/eval_data.pt')
+    model, optimizer, clock = initialize(args)
+    eval_data = load_eval_data(args)
 
     ### test random model ###
     eval_wt, eval_reloc = eval(model, args, eval_data)
@@ -90,6 +86,6 @@ if __name__ == "__main__":
     ]
     for lr in lrs:
         args.lr = lr
-        args.log_path = f"./train/{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        args.log_path = f"./results/{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         main()
         pass
