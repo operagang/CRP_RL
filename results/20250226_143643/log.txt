@@ -220,3 +220,4 @@ Epoch: 188 | Train loss: -9.894703537648814 | Eval WT: 3019.177 | Eval moves: 64
 Epoch: 189 | Train loss: -9.216197635279107 | Eval WT: 3018.573 | Eval moves: 64.529 | 127s
 Epoch: 190 | Train loss: -9.436596797223581 | Eval WT: 3017.612 | Eval moves: 64.487 | 124s
 Epoch: 191 | Train loss: -9.62064208094671 | Eval WT: 3018.17 | Eval moves: 64.521 | 160s
+Epoch: 192 | Train loss: -9.445405753720674 | Eval WT: 3016.521 | Eval moves: 64.479 | 127s
