@@ -8,8 +8,31 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from model import Model
-from generator import Generator
+from model.model import Model
+from generator.generator import Generator
+
+
+def initialize(args):
+    print(f'* Device: {args.device}')
+    model = Model(args).to(args.device)
+    if args.load_model_path is not None:
+        model.load_state_dict(torch.load(args.load_model_path))
+        print(f'* Model loaded: ({args.load_model_path})')
+    optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    set_log(args)
+    clock = time.time()
+    print(f'* lr: {args.lr}, epochs: {args.epochs}')
+    print(f'* batch_num: {args.batch_num}, batch_size: {args.batch_size}, mini_batch_num: {args.mini_batch_num}')
+    print(f'* baseline: {args.baseline}, pomo_size: {args.pomo_size}')
+    print(f'* empty_priority: {args.empty_priority}, norm_priority: {args.norm_priority}')
+    return model, optimizer, clock
+
+
+def load_eval_data(args):
+    eval_data = Generator(load_data=args.eval_path)
+    torch.save(eval_data.data, args.log_path + '/eval_data.pt')
+    print(f'* eval data size = {eval_data.data.shape}')
+    return eval_data
 
 
 def set_log(args):
@@ -62,7 +85,12 @@ def train(model, optimizer, args):
     else:
         model.decoder.set_sampler('greedy')
 
-    dataset = Generator(args) # n_samples = batch_num * batch_size
+    dataset = Generator(
+        n_samples=args.batch_size * args.batch_num,
+        layout=(args.n_containers, args.n_bays, args.n_rows, args.n_tiers),
+        inst_type=args.instance_type,
+        device=args.device
+    )
     dataloader = DataLoader(dataset=dataset, batch_size=args.batch_size, shuffle=True)
     tbar = tqdm(dataloader)
     losses = []
@@ -78,11 +106,11 @@ def train(model, optimizer, args):
             mini = batch[start_idx:end_idx]  # (batch_size, ...)
 
             if args.baseline == 'pomo':
-                mini_expanded = mini.unsqueeze(1).expand(mini.shape[0], args.pomo_size, mini.shape[1], mini.shape[2])
-                mini_expanded = mini_expanded.reshape(mini.shape[0] * args.pomo_size, mini.shape[1], mini.shape[2])
-                wt, ll, reloc = model(mini_expanded.to(args.device), dataset.n_bays, dataset.n_rows)
+                mini_expanded = mini.unsqueeze(1).expand(mini.shape[0], args.pomo_size, mini.shape[1], mini.shape[2], mini.shape[3])
+                mini_expanded = mini_expanded.reshape(mini.shape[0] * args.pomo_size, mini.shape[1], mini.shape[2], mini.shape[3])
+                wt, ll, reloc = model(mini_expanded.to(args.device))
             else:
-                wt, ll, reloc = model(mini.to(args.device), dataset.n_bays, dataset.n_rows)
+                wt, ll, reloc = model(mini.to(args.device))
 
             loss = get_loss(args, wt, ll, reloc) / args.mini_batch_num  # Gradient Accumulation을 위한 평균화
             loss.backward()  # `loss.backward()`는 여기서 실행
@@ -109,7 +137,7 @@ def eval(model, args, dataset):
     wts = []; relocs = []
     for batch in eval_loader:
         with torch.no_grad():
-            wt, _, reloc = model(batch.to(args.device), dataset.n_bays, dataset.n_rows)
+            wt, _, reloc = model(batch.to(args.device))
             wts.extend(wt.tolist())
             relocs.extend(reloc.tolist())
     print(f'Eval 시간: {round(time.time() - clock, 1)}s')
