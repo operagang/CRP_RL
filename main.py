@@ -39,7 +39,7 @@ args = argparse.Namespace(
     instance_type = 'random',
     objective = 'workingtime', # or relocations
 
-    load_model_path = None,
+    load_model_path = './results/(~93)35,2,4,6,Norm,fill,N2/models/epoch(90).pt',
 
     embed_dim = 128,
     n_encode_layers = 3,
