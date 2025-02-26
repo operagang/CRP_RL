@@ -28,9 +28,9 @@ args = argparse.Namespace(
     empty_priority = None, # or any integer
     norm_priority = True,
     add_fill_ratio = True,
-    norm_layout = False,
-    add_layout_ratio = False,
-    add_travel_time = False,
+    norm_layout = True,
+    add_layout_ratio = True,
+    add_travel_time = True,
 
     n_containers = 35,
     n_bays = 2,
@@ -61,7 +61,7 @@ def main():
     ### test random model ###
     eval_wt, eval_reloc = eval(model, args, eval_data)
     clock = save_log(args, -1, None, eval_wt, eval_reloc, model, clock)
-    # solve_benchmarks(model, -1, args, ['random'])
+    solve_benchmarks(model, -1, args, ['random'])
 
     ### main loop ###
     for epoch in range(args.epochs):

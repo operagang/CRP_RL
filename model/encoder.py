@@ -307,11 +307,17 @@ class Encoder(nn.Module):
 
 
             n_bays = x.shape[1] // n_rows
-            if self.norm_layout:                
-                stack_rows = (stack_rows - 1) / (n_rows - 1)
-                stack_bays = (stack_bays - 1) / (n_bays - 1)
-                row_diff = row_diff / (n_rows - 1)
-                bay_diff = bay_diff / (n_bays - 1)
+            if self.norm_layout:
+                if n_rows > 1:
+                    stack_rows = (stack_rows - 1) / (n_rows - 1)
+                    row_diff = row_diff / (n_rows - 1)
+                else:
+                    stack_rows = stack_rows - 1
+                if n_bays > 1:
+                    stack_bays = (stack_bays - 1) / (n_bays - 1)
+                    bay_diff = bay_diff / (n_bays - 1)
+                else:
+                    stack_bays = stack_bays - 1
 
 
             ft = torch.cat([min_due, top_val, is_well, is_target, stack_height, tier - stack_height,
