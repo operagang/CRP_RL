@@ -1,0 +1,138 @@
+lr: 5e-06
+epochs: 500
+batch_num: 100
+batch_size: 64
+mini_batch_num: 1
+baseline: pomo
+pomo_size: 16
+eval_batch_size: 1024
+eval_path: ./eval_data.pt
+eval_n_bays: 2
+eval_n_rows: 4
+empty_priority: None
+n_containers: 35
+n_bays: 2
+n_rows: 4
+n_tiers: 6
+instance_type: random
+objective: workingtime
+embed_dim: 128
+n_encode_layers: 3
+n_heads: 8
+ff_hidden: 512
+tanh_c: 10
+device: cuda:0
+log_path: ./train/20250226_103132
+--------------------
+Epoch: 0 | Train loss: None | Eval WT: 5813.457 | Eval moves: 83.15 | 1s
+Epoch: 1 | Train loss: -1705.464575122973 | Eval WT: 4264.728 | Eval moves: 61.968 | 128s
+Epoch: 2 | Train loss: -518.799783677818 | Eval WT: 4106.897 | Eval moves: 60.91 | 103s
+Epoch: 3 | Train loss: -351.41291788249526 | Eval WT: 3921.368 | Eval moves: 60.099 | 98s
+Epoch: 4 | Train loss: -346.895638692826 | Eval WT: 3724.885 | Eval moves: 60.192 | 96s
+Epoch: 5 | Train loss: -368.15572436358707 | Eval WT: 3533.353 | Eval moves: 61.167 | 98s
+Epoch: 6 | Train loss: -381.8207815294785 | Eval WT: 3353.202 | Eval moves: 63.183 | 103s
+Epoch: 7 | Train loss: -375.8318134518377 | Eval WT: 3234.021 | Eval moves: 64.379 | 109s
+Epoch: 8 | Train loss: -319.65027932646046 | Eval WT: 3182.641 | Eval moves: 65.299 | 111s
+Epoch: 9 | Train loss: -267.4330946177737 | Eval WT: 3151.477 | Eval moves: 65.688 | 114s
+Epoch: 10 | Train loss: -217.7247083646798 | Eval WT: 3136.704 | Eval moves: 65.681 | 114s
+Epoch: 11 | Train loss: -195.18355203543902 | Eval WT: 3125.15 | Eval moves: 65.897 | 139s
+Epoch: 12 | Train loss: -178.73889374619907 | Eval WT: 3116.299 | Eval moves: 65.662 | 115s
+Epoch: 13 | Train loss: -163.6040836671277 | Eval WT: 3108.12 | Eval moves: 65.771 | 113s
+Epoch: 14 | Train loss: -152.62795170541588 | Eval WT: 3104.704 | Eval moves: 65.538 | 113s
+Epoch: 15 | Train loss: -145.1254716694445 | Eval WT: 3097.64 | Eval moves: 65.67 | 112s
+Epoch: 16 | Train loss: -140.54143716269587 | Eval WT: 3091.637 | Eval moves: 65.722 | 113s
+Epoch: 17 | Train loss: -134.12931457063357 | Eval WT: 3089.514 | Eval moves: 65.57 | 112s
+Epoch: 18 | Train loss: -127.33457669390368 | Eval WT: 3084.991 | Eval moves: 65.555 | 112s
+Epoch: 19 | Train loss: -121.9751141592697 | Eval WT: 3082.823 | Eval moves: 65.596 | 113s
+Epoch: 20 | Train loss: -117.5078741583989 | Eval WT: 3080.854 | Eval moves: 65.597 | 112s
+Epoch: 21 | Train loss: -112.54617561316296 | Eval WT: 3077.515 | Eval moves: 65.386 | 138s
+Epoch: 22 | Train loss: -109.63802844924707 | Eval WT: 3077.181 | Eval moves: 65.508 | 111s
+Epoch: 23 | Train loss: -107.24276357921454 | Eval WT: 3075.089 | Eval moves: 65.466 | 111s
+Epoch: 24 | Train loss: -102.85755387997267 | Eval WT: 3073.847 | Eval moves: 65.545 | 111s
+Epoch: 25 | Train loss: -103.75015167298736 | Eval WT: 3071.558 | Eval moves: 65.443 | 112s
+Epoch: 26 | Train loss: -99.12106307374538 | Eval WT: 3070.816 | Eval moves: 65.396 | 111s
+Epoch: 27 | Train loss: -95.11544630276792 | Eval WT: 3068.368 | Eval moves: 65.444 | 111s
+Epoch: 28 | Train loss: -93.5111308141408 | Eval WT: 3063.996 | Eval moves: 65.395 | 111s
+Epoch: 29 | Train loss: -92.5548940946996 | Eval WT: 3064.954 | Eval moves: 65.3 | 111s
+Epoch: 30 | Train loss: -92.39060027559485 | Eval WT: 3062.567 | Eval moves: 65.312 | 112s
+Epoch: 31 | Train loss: -90.11297302808602 | Eval WT: 3062.733 | Eval moves: 65.311 | 139s
+Epoch: 32 | Train loss: -87.9597739857946 | Eval WT: 3062.266 | Eval moves: 65.326 | 111s
+Epoch: 33 | Train loss: -83.43387238110789 | Eval WT: 3060.578 | Eval moves: 65.266 | 111s
+Epoch: 34 | Train loss: -82.37374243811543 | Eval WT: 3058.584 | Eval moves: 65.276 | 110s
+Epoch: 35 | Train loss: -80.68808617031516 | Eval WT: 3057.6 | Eval moves: 65.256 | 111s
+Epoch: 36 | Train loss: -79.51108367208954 | Eval WT: 3056.943 | Eval moves: 65.235 | 111s
+Epoch: 37 | Train loss: -79.24484107133419 | Eval WT: 3057.585 | Eval moves: 65.249 | 110s
+Epoch: 38 | Train loss: -77.26887414434094 | Eval WT: 3055.276 | Eval moves: 65.237 | 111s
+Epoch: 39 | Train loss: -75.08838493169382 | Eval WT: 3053.651 | Eval moves: 65.178 | 110s
+Epoch: 40 | Train loss: -75.72115046608 | Eval WT: 3053.801 | Eval moves: 65.208 | 111s
+Epoch: 41 | Train loss: -73.7788242486356 | Eval WT: 3052.297 | Eval moves: 65.174 | 136s
+Epoch: 42 | Train loss: -72.51977482581812 | Eval WT: 3052.478 | Eval moves: 65.183 | 110s
+Epoch: 43 | Train loss: -70.48205175143993 | Eval WT: 3050.735 | Eval moves: 65.152 | 108s
+Epoch: 44 | Train loss: -69.4301327777388 | Eval WT: 3051.038 | Eval moves: 65.166 | 109s
+Epoch: 45 | Train loss: -68.79946677069738 | Eval WT: 3049.728 | Eval moves: 65.13 | 109s
+Epoch: 46 | Train loss: -67.27673161765286 | Eval WT: 3048.679 | Eval moves: 65.119 | 109s
+Epoch: 47 | Train loss: -66.50606615842995 | Eval WT: 3048.783 | Eval moves: 65.107 | 109s
+Epoch: 48 | Train loss: -64.7437738577134 | Eval WT: 3046.828 | Eval moves: 65.101 | 109s
+Epoch: 49 | Train loss: -64.25858645848696 | Eval WT: 3046.02 | Eval moves: 65.119 | 110s
+Epoch: 50 | Train loss: -64.0527532095892 | Eval WT: 3046.716 | Eval moves: 65.112 | 109s
+Epoch: 51 | Train loss: -62.102942506299684 | Eval WT: 3044.012 | Eval moves: 65.054 | 132s
+Epoch: 52 | Train loss: -61.605981180739306 | Eval WT: 3044.701 | Eval moves: 65.054 | 109s
+Epoch: 53 | Train loss: -61.36754402825958 | Eval WT: 3046.296 | Eval moves: 65.08 | 108s
+Epoch: 54 | Train loss: -60.12684167406214 | Eval WT: 3044.516 | Eval moves: 65.038 | 107s
+Epoch: 55 | Train loss: -59.523956723644226 | Eval WT: 3043.967 | Eval moves: 65.064 | 109s
+Epoch: 56 | Train loss: -59.57744428114319 | Eval WT: 3042.59 | Eval moves: 65.051 | 108s
+Epoch: 57 | Train loss: -58.314735259106264 | Eval WT: 3042.603 | Eval moves: 65.041 | 110s
+Epoch: 58 | Train loss: -56.67307461694765 | Eval WT: 3043.454 | Eval moves: 65.008 | 109s
+Epoch: 59 | Train loss: -56.685437538850664 | Eval WT: 3040.674 | Eval moves: 64.987 | 108s
+Epoch: 60 | Train loss: -56.99435139594506 | Eval WT: 3042.872 | Eval moves: 65.038 | 108s
+Epoch: 61 | Train loss: -55.981537252727 | Eval WT: 3042.687 | Eval moves: 65.001 | 131s
+Epoch: 62 | Train loss: -53.92239264190577 | Eval WT: 3040.748 | Eval moves: 65.01 | 108s
+Epoch: 63 | Train loss: -53.60598107676522 | Eval WT: 3042.025 | Eval moves: 64.992 | 107s
+Epoch: 64 | Train loss: -55.05352517386274 | Eval WT: 3040.937 | Eval moves: 64.983 | 108s
+Epoch: 65 | Train loss: -52.312810763426924 | Eval WT: 3041.094 | Eval moves: 65.02 | 107s
+Epoch: 66 | Train loss: -53.11697312604225 | Eval WT: 3040.749 | Eval moves: 65.0 | 108s
+Epoch: 67 | Train loss: -52.784260944960266 | Eval WT: 3040.563 | Eval moves: 64.997 | 107s
+Epoch: 68 | Train loss: -50.9901794493304 | Eval WT: 3038.979 | Eval moves: 64.962 | 108s
+Epoch: 69 | Train loss: -51.05077679506969 | Eval WT: 3039.683 | Eval moves: 64.963 | 106s
+Epoch: 70 | Train loss: -49.90272923047638 | Eval WT: 3039.114 | Eval moves: 64.973 | 107s
+Epoch: 71 | Train loss: -50.51152860452151 | Eval WT: 3038.726 | Eval moves: 64.896 | 133s
+Epoch: 72 | Train loss: -49.50003003034537 | Eval WT: 3036.483 | Eval moves: 64.923 | 106s
+Epoch: 73 | Train loss: -49.321562686866926 | Eval WT: 3039.224 | Eval moves: 64.956 | 107s
+Epoch: 74 | Train loss: -50.93886648067419 | Eval WT: 3036.504 | Eval moves: 64.852 | 106s
+Epoch: 75 | Train loss: -48.40497374703324 | Eval WT: 3038.067 | Eval moves: 64.945 | 108s
+Epoch: 76 | Train loss: -48.39290480972473 | Eval WT: 3035.503 | Eval moves: 64.919 | 110s
+Epoch: 77 | Train loss: -47.733459611080264 | Eval WT: 3036.546 | Eval moves: 64.944 | 108s
+Epoch: 78 | Train loss: -47.58431892318657 | Eval WT: 3036.882 | Eval moves: 64.909 | 106s
+Epoch: 79 | Train loss: -45.9932352746754 | Eval WT: 3034.856 | Eval moves: 64.894 | 106s
+Epoch: 80 | Train loss: -45.888930067048925 | Eval WT: 3035.941 | Eval moves: 64.894 | 107s
+Epoch: 81 | Train loss: -46.518426749518206 | Eval WT: 3035.678 | Eval moves: 64.893 | 130s
+Epoch: 82 | Train loss: -45.353380986792146 | Eval WT: 3034.74 | Eval moves: 64.878 | 106s
+Epoch: 83 | Train loss: -46.14210623852676 | Eval WT: 3034.352 | Eval moves: 64.851 | 107s
+Epoch: 84 | Train loss: -43.92990039542026 | Eval WT: 3034.384 | Eval moves: 64.882 | 106s
+Epoch: 85 | Train loss: -44.11434606538302 | Eval WT: 3035.106 | Eval moves: 64.915 | 106s
+Epoch: 86 | Train loss: -44.7170479028679 | Eval WT: 3035.017 | Eval moves: 64.888 | 107s
+Epoch: 87 | Train loss: -43.65814437802348 | Eval WT: 3032.992 | Eval moves: 64.889 | 106s
+Epoch: 88 | Train loss: -44.63055288774869 | Eval WT: 3033.755 | Eval moves: 64.896 | 106s
+Epoch: 89 | Train loss: -43.6647512827311 | Eval WT: 3032.623 | Eval moves: 64.863 | 106s
+Epoch: 90 | Train loss: -42.75054225475142 | Eval WT: 3032.197 | Eval moves: 64.842 | 106s
+Epoch: 91 | Train loss: -43.310059135125776 | Eval WT: 3032.384 | Eval moves: 64.846 | 130s
+Epoch: 92 | Train loss: -42.877794441237846 | Eval WT: 3032.516 | Eval moves: 64.865 | 106s
+Epoch: 93 | Train loss: -41.76215890017154 | Eval WT: 3032.684 | Eval moves: 64.853 | 106s
+Epoch: 94 | Train loss: -41.079245270702756 | Eval WT: 3033.345 | Eval moves: 64.859 | 106s
+Epoch: 95 | Train loss: -42.194886238121605 | Eval WT: 3032.213 | Eval moves: 64.849 | 105s
+Epoch: 96 | Train loss: -42.03856028708303 | Eval WT: 3032.551 | Eval moves: 64.835 | 106s
+Epoch: 97 | Train loss: -41.09004190137156 | Eval WT: 3032.623 | Eval moves: 64.823 | 105s
+Epoch: 98 | Train loss: -40.09262249491596 | Eval WT: 3031.622 | Eval moves: 64.824 | 106s
+Epoch: 99 | Train loss: -40.71631154963854 | Eval WT: 3031.436 | Eval moves: 64.813 | 106s
+Epoch: 100 | Train loss: -38.82302342688629 | Eval WT: 3031.472 | Eval moves: 64.82 | 107s
+Epoch: 101 | Train loss: -39.862023830146 | Eval WT: 3031.429 | Eval moves: 64.831 | 130s
+Epoch: 102 | Train loss: -38.58248233205458 | Eval WT: 3031.045 | Eval moves: 64.791 | 105s
+Epoch: 103 | Train loss: -38.6038311302293 | Eval WT: 3032.129 | Eval moves: 64.845 | 106s
+Epoch: 104 | Train loss: -39.44564485147375 | Eval WT: 3030.745 | Eval moves: 64.811 | 106s
+Epoch: 105 | Train loss: -38.291754608270914 | Eval WT: 3031.455 | Eval moves: 64.826 | 107s
+Epoch: 106 | Train loss: -37.02701758278036 | Eval WT: 3032.054 | Eval moves: 64.854 | 106s
+Epoch: 107 | Train loss: -37.35834308056312 | Eval WT: 3030.24 | Eval moves: 64.813 | 106s
+Epoch: 108 | Train loss: -37.01093617467088 | Eval WT: 3031.113 | Eval moves: 64.833 | 106s
+Epoch: 109 | Train loss: -37.7381216055067 | Eval WT: 3031.521 | Eval moves: 64.831 | 107s
+Epoch: 110 | Train loss: -37.554408207723604 | Eval WT: 3031.041 | Eval moves: 64.785 | 106s
+Epoch: 111 | Train loss: -37.23746141582967 | Eval WT: 3029.728 | Eval moves: 64.792 | 130s
