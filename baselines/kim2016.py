@@ -1,6 +1,18 @@
 import torch
-from env.env import Env
-from benchmarks.benchmarks import find_and_process_file
+try:
+    from env.env import Env
+except:
+    import os, sys
+    # 현재 스크립트(`lin2015.py`)가 위치한 디렉터리
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    # 최상위 디렉터리 경로 (현재 스크립트보다 한 단계 위)
+    top_level_dir = os.path.abspath(os.path.join(current_dir, ".."))
+    # 최상위 디렉터리를 sys.path에 추가 (실행 중에만 적용됨)
+    if top_level_dir not in sys.path:
+        sys.path.append(top_level_dir)
+    from env.env import Env
+
+
 
 class Kim2016(): # batch 연산 X
     def __init__(self):
@@ -82,12 +94,13 @@ class Kim2016(): # batch 연산 X
 
         return
 
-    def run(self, x, n_bays, n_rows):
-        _, num_stacks, max_tiers = x.shape  # (batch, stack, tiers)
+    def run(self, x):
+        _, n_bays, n_rows, max_tiers = x.shape  # (1, bays, rows, tiers)
         n_containers = torch.sum(x > 0).item()
-        cost = torch.zeros(x.shape[0])
         device = torch.device('cpu')
-        env = Env(device, x, n_bays, n_rows)
+
+        env = Env(device, x)
+        cost = torch.zeros(env.x.shape[0])
 
         while True:
             # Case 1
@@ -187,31 +200,12 @@ class Kim2016(): # batch 연산 X
 
 
 if __name__ == "__main__":
-    from env.env import Env
-
-    # container_tensor = torch.Tensor(
-    #     [[[10,4,18,0,0,0],
-    #     [9,17,8,20,0,0],
-    #     [5,19,2,0,0,0],
-    #     [16,14,7,13,3,6],
-    #     [1,11,0,0,0,0],
-    #     [15,12,0,0,0,0]]]
-    # )
-    # # container_tensor = torch.Tensor(
-    # #     [[[10,3,4,0,0,0],
-    # #     [9,17,0,0,0,0],
-    # #     [9,2,3,0,0,0],
-    # #     [16,14,6,5,0,0],
-    # #     [1,2,0,0,0,0],
-    # #     [12,10,0,0,0,0]]]
-    # # )
-    # n_bays = 2
-    # n_rows = 3
+    from benchmarks.benchmarks import find_and_process_file
 
     # Example usage
     folder_path = "./benchmarks/Lee_instances"  # Replace with the folder containing your files
     inst_type = "random"
-    n_bays = 1
+    n_bays = 2
     n_rows = 16
     n_tiers = 6
     id = 3
@@ -220,7 +214,7 @@ if __name__ == "__main__":
 
     kim = Kim2016() # batch 연산 X
 
-    cost = kim.run(container_tensor, n_bays, n_rows)
+    cost = kim.run(container_tensor)
 
     print(cost)
 
