@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 import time
+import random
 import argparse
 import numpy as np
 import torch
@@ -12,7 +13,17 @@ from model.model import Model
 from generator.generator import Generator
 
 
+def check_args_validity(args):
+    assert len(args.batch_size) == len(args.mini_batch_num) == len(args.n_containers)\
+    == len(args.n_bays) == len(args.n_rows) == len(args.n_tiers)
+    if args.train_data_sampler is not None:
+        assert args.train_data_idx is None
+    if args.train_data_idx is not None:
+        assert args.train_data_sampler is None
+
+
 def initialize(args):
+    check_args_validity(args)
     print(f'* Device: {args.device}')
     model = Model(args).to(args.device)
     if args.load_model_path is not None:
@@ -46,8 +57,8 @@ def set_log(args):
 
 def save_log(args, epoch, loss, wt, reloc, model, clock):
     new_clock = time.time()
-    message = f'Epoch: {epoch+1} | Train loss: {loss} | Eval WT: {round(wt, 3)} | Eval moves: '\
-            + f'{round(reloc + args.n_containers, 3)} '\
+    message = f'Epoch: {epoch+1} | Train loss: {loss} | Eval WT: {round(wt, 3)} | Eval relocs: '\
+            + f'{round(reloc, 3)} '\
             + f'| {round(new_clock-clock)}s'
     with open(args.log_path + '/log.txt', 'a') as f:
         f.write(message + '\n')
@@ -56,7 +67,7 @@ def save_log(args, epoch, loss, wt, reloc, model, clock):
     return new_clock
 
 
-def get_loss(args, wt, ll, reloc):
+def get_loss(args, wt, ll, reloc, idx):
     if args.objective == 'workingtime':
         obj = wt
     elif args.objective == 'relocations':
@@ -67,7 +78,7 @@ def get_loss(args, wt, ll, reloc):
     if args.baseline is None:
         return (obj * ll).mean()
     elif args.baseline == 'pomo':
-        obj_reshaped = obj.view(args.batch_size // args.mini_batch_num, args.pomo_size)
+        obj_reshaped = obj.view(args.batch_size[idx] // args.mini_batch_num[idx], args.pomo_size)
         obj_mean = obj_reshaped.mean(dim=1, keepdim=True)
         obj_adjusted = (obj_reshaped - obj_mean).view(obj.shape[0])
         return (obj_adjusted * ll).mean()
@@ -78,20 +89,32 @@ def get_loss(args, wt, ll, reloc):
     #     return (norm_obj * ll).mean()
 
 
+def sample_data_idx(args):
+    if args.train_data_idx is not None:
+        return args.train_data_idx
+
+    if args.train_data_sampler == 'uniform':
+        return random.randint(0, len(args.n_containers) - 1)
+
+
 def train(model, optimizer, args):
     model.train()
     if args.baseline == 'pomo':
         model.decoder.set_sampler('sampling')
     else:
         model.decoder.set_sampler('greedy')
+    
+    idx = sample_data_idx(args)
+    layout = (args.n_containers[idx], args.n_bays[idx], args.n_rows[idx], args.n_tiers[idx])
+    print(f'Train data layout = {layout}')
 
     dataset = Generator(
-        n_samples=args.batch_size * args.batch_num,
-        layout=(args.n_containers, args.n_bays, args.n_rows, args.n_tiers),
+        n_samples=args.batch_size[idx] * args.batch_num,
+        layout=layout,
         inst_type=args.instance_type,
         device=args.device
     )
-    dataloader = DataLoader(dataset=dataset, batch_size=args.batch_size, shuffle=True)
+    dataloader = DataLoader(dataset=dataset, batch_size=args.batch_size[idx], shuffle=True)
     tbar = tqdm(dataloader)
     losses = []
     optimizer.zero_grad()
@@ -99,10 +122,10 @@ def train(model, optimizer, args):
     for batch in tbar: # batch_num
         accumulated_loss = 0.0
 
-        for i in range(args.mini_batch_num):
-            assert args.batch_size % args.mini_batch_num == 0.0
-            start_idx = i * (args.batch_size // args.mini_batch_num)
-            end_idx = (i + 1) * (args.batch_size // args.mini_batch_num)
+        for i in range(args.mini_batch_num[idx]):
+            assert args.batch_size[idx] % args.mini_batch_num[idx] == 0.0
+            start_idx = i * (args.batch_size[idx] // args.mini_batch_num[idx])
+            end_idx = (i + 1) * (args.batch_size[idx] // args.mini_batch_num[idx])
             mini = batch[start_idx:end_idx]  # (batch_size, ...)
 
             if args.baseline == 'pomo':
@@ -112,7 +135,7 @@ def train(model, optimizer, args):
             else:
                 wt, ll, reloc = model(mini.to(args.device))
 
-            loss = get_loss(args, wt, ll, reloc) / args.mini_batch_num  # Gradient Accumulation을 위한 평균화
+            loss = get_loss(args, wt, ll, reloc, idx) / args.mini_batch_num[idx]  # Gradient Accumulation을 위한 평균화
             loss.backward()  # `loss.backward()`는 여기서 실행
             accumulated_loss += loss.item()  # Loss 저장
 

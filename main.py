@@ -13,11 +13,11 @@ from benchmarks.benchmarks import solve_benchmarks
 
 args = argparse.Namespace(
     lr = 0.000001,
-    epochs = 500,
+    epochs = 2000,
 
     batch_num = 100,
-    batch_size = 64,
-    mini_batch_num = 1,
+    batch_size = [64,64,64,64],
+    mini_batch_num = [1,1,2,1],
 
     baseline = 'pomo', # or None
     pomo_size = 16,
@@ -32,14 +32,17 @@ args = argparse.Namespace(
     add_layout_ratio = True,
     add_travel_time = True,
 
-    n_containers = 35,
-    n_bays = 2,
-    n_rows = 4,
-    n_tiers = 6,
+    train_data_idx = None,
+    train_data_sampler = 'uniform',
+
+    n_containers = [35,35,70,46],
+    n_bays = [1,2,4,2],
+    n_rows = [8,4,4,4],
+    n_tiers = [6,6,6,8],
     instance_type = 'random',
     objective = 'workingtime', # or relocations
 
-    load_model_path = './results/(~93)35,2,4,6,Norm,fill,N2/models/epoch(90).pt',
+    load_model_path = None,
 
     embed_dim = 128,
     n_encode_layers = 3,
@@ -61,7 +64,7 @@ def main():
     ### test random model ###
     eval_wt, eval_reloc = eval(model, args, eval_data)
     clock = save_log(args, -1, None, eval_wt, eval_reloc, model, clock)
-    solve_benchmarks(model, -1, args, ['random'])
+    # solve_benchmarks(model, -1, args, ['random'])
 
     ### main loop ###
     for epoch in range(args.epochs):
