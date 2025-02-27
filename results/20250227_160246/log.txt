@@ -85,3 +85,7 @@ Epoch: 51 | Train loss: -36.13705491400755 | Eval WT: 3053.275 | Eval relocs: 30
 Epoch: 52 | Train loss: -34.97930540562097 | Eval WT: 3054.097 | Eval relocs: 30.228 | 111s
 Epoch: 53 | Train loss: -167.49149042439825 | Eval WT: 3065.623 | Eval relocs: 30.806 | 454s
 Epoch: 54 | Train loss: -148.71391020528736 | Eval WT: 3068.448 | Eval relocs: 30.894 | 454s
+Epoch: 55 | Train loss: -146.87144932189523 | Eval WT: 3055.32 | Eval relocs: 30.405 | 222s
+Epoch: 56 | Train loss: -37.822411265277076 | Eval WT: 3046.718 | Eval relocs: 30.299 | 135s
+Epoch: 57 | Train loss: -33.32288689637569 | Eval WT: 3046.582 | Eval relocs: 30.316 | 132s
+Epoch: 58 | Train loss: -31.050887547431007 | Eval WT: 3047.72 | Eval relocs: 30.206 | 113s
