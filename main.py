@@ -19,7 +19,7 @@ args = argparse.Namespace(
     batch_size = [64,64,64,64],
     mini_batch_num = [1,1,2,1],
 
-    baseline = 'pomo', # or None
+    baseline = 'pomoZ', # \in {None, 'pomo', 'pomoZ'}
     pomo_size = 16,
 
     eval_path = './generator/eval_data/eval_data(35,2,4,6).pt',

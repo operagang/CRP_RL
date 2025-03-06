@@ -20,6 +20,10 @@ def check_args_validity(args):
         assert args.train_data_idx is None
     if args.train_data_idx is not None:
         assert args.train_data_sampler is None
+    if args.baseline in ['pomo', 'pomoZ']:
+        assert args.pomo_size > 0
+    if args.pomo_size is not None:
+        assert args.baseline in ['pomo', 'pomoZ']
 
 
 def initialize(args):
@@ -82,6 +86,12 @@ def get_loss(args, wt, ll, reloc, idx):
         obj_mean = obj_reshaped.mean(dim=1, keepdim=True)
         obj_adjusted = (obj_reshaped - obj_mean).view(obj.shape[0])
         return (obj_adjusted * ll).mean()
+    elif args.baseline == 'pomoZ':
+        obj_reshaped = obj.view(args.batch_size[idx] // args.mini_batch_num[idx], args.pomo_size)
+        obj_mean = obj_reshaped.mean(dim=1, keepdim=True)
+        obj_std = obj_reshaped.std(dim=1, keepdim=True, unbiased=False)  # 작은 배치에서도 안정적이도록 `unbiased=False` 사용
+        obj_adjusted = ((obj_reshaped - obj_mean) / (obj_std + 1e-8)).view(obj.shape[0])
+        return (obj_adjusted * ll).mean()
     # else:
     #     obj_mean = obj.mean()
     #     obj_std = obj.std(unbiased=False)  # 작은 배치에서도 안정적이도록 `unbiased=False` 사용
@@ -99,7 +109,7 @@ def sample_data_idx(args):
 
 def train(model, optimizer, args):
     model.train()
-    if args.baseline == 'pomo':
+    if args.baseline in ['pomo', 'pomoZ']:
         model.decoder.set_sampler('sampling')
     else:
         model.decoder.set_sampler('greedy')
@@ -128,7 +138,7 @@ def train(model, optimizer, args):
             end_idx = (i + 1) * (args.batch_size[idx] // args.mini_batch_num[idx])
             mini = batch[start_idx:end_idx]  # (batch_size, ...)
 
-            if args.baseline == 'pomo':
+            if args.baseline in ['pomo', 'pomoZ']:
                 mini_expanded = mini.unsqueeze(1).expand(mini.shape[0], args.pomo_size, mini.shape[1], mini.shape[2], mini.shape[3])
                 mini_expanded = mini_expanded.reshape(mini.shape[0] * args.pomo_size, mini.shape[1], mini.shape[2], mini.shape[3])
                 wt, ll, reloc = model(mini_expanded.to(args.device))
