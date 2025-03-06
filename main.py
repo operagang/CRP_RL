@@ -42,7 +42,7 @@ args = argparse.Namespace(
     instance_type = 'random',
     objective = 'workingtime', # or relocations
 
-    load_model_path = None,
+    load_model_path = './results/20250227_160246/models/epoch(1730).pt',
 
     embed_dim = 128,
     n_encode_layers = 3,
@@ -64,7 +64,7 @@ def main():
     ### test random model ###
     eval_wt, eval_reloc = eval(model, args, eval_data)
     clock = save_log(args, -1, None, eval_wt, eval_reloc, model, clock)
-    # solve_benchmarks(model, -1, args, ['random'])
+    solve_benchmarks(model, -1, args, ['random'])
 
     ### main loop ###
     for epoch in range(args.epochs):
