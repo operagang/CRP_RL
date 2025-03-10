@@ -216,10 +216,16 @@ class Encoder(nn.Module):
     def __init__(self, args):
         super().__init__()
         self.device = args.device
-        self.init_embed_dim  = 11
+        self.objective = args.objective
+        if self.objective == 'workingtime':
+            self.init_embed_dim  = 11
+        elif self.objective == 'relocations':
+            self.init_embed_dim  = 7
         self.empty_priority = args.empty_priority
         self.norm_priority = args.norm_priority
         self.norm_layout = args.norm_layout
+        if self.norm_layout:
+            assert self.objective == 'workingtime'
         self.add_fill_ratio = args.add_fill_ratio
         self.add_layout_ratio = args.add_layout_ratio
         self.add_travel_time = args.add_travel_time
@@ -227,8 +233,10 @@ class Encoder(nn.Module):
             self.init_embed_dim += 1
         if self.add_layout_ratio:
             self.init_embed_dim += 1
+            assert self.objective == 'workingtime'
         if self.add_travel_time:
             self.init_embed_dim += 2
+            assert self.objective == 'workingtime'
         self.fcs = nn.Sequential(
                             nn.Linear(self.init_embed_dim, args.embed_dim//2), #bias = True by default
                             nn.ReLU(),
@@ -320,10 +328,14 @@ class Encoder(nn.Module):
                     stack_bays = stack_bays - 1
 
 
-            ft = torch.cat([min_due, top_val, is_well, is_target, stack_height, tier - stack_height,
-                            stack_rows.unsqueeze(-1), row_diff,
-                            stack_bays.unsqueeze(-1), bay_diff,
-                            md], dim=2).to(self.device)
+            if self.objective == 'workingtime':
+                ft = torch.cat([min_due, top_val, is_well, is_target, stack_height, tier - stack_height,
+                                stack_rows.unsqueeze(-1), row_diff,
+                                stack_bays.unsqueeze(-1), bay_diff,
+                                md], dim=2).to(self.device)
+            elif self.objective == 'relocatons':
+                ft = torch.cat([min_due, top_val, is_well, is_target, stack_height, tier - stack_height,
+                                md], dim=2).to(self.device)
 
 
             if self.add_fill_ratio:

@@ -19,18 +19,18 @@ args = argparse.Namespace(
     batch_size = [64,64,64,64],
     mini_batch_num = [1,1,2,1],
 
-    baseline = 'pomoZ', # \in {None, 'pomo', 'pomoZ'}
+    baseline = 'pomo', # \in {None, 'pomo', 'pomoZ'}
     pomo_size = 16,
 
     eval_path = './generator/eval_data/eval_data(35,2,4,6).pt',
     eval_batch_size = 1024,
 
-    empty_priority = None, # or any integer
+    empty_priority = None, # None or any integer
     norm_priority = True,
     add_fill_ratio = True,
-    norm_layout = True,
-    add_layout_ratio = True,
-    add_travel_time = True,
+    norm_layout = False,
+    add_layout_ratio = False,
+    add_travel_time = False,
 
     train_data_idx = None,
     train_data_sampler = 'uniform',
@@ -40,9 +40,9 @@ args = argparse.Namespace(
     n_rows = [8,4,4,4],
     n_tiers = [6,6,6,8],
     instance_type = 'random',
-    objective = 'workingtime', # or relocations
+    objective = 'relocations', # workingtime or relocations
 
-    load_model_path = './results/20250227_160246/models/epoch(1730).pt',
+    load_model_path = None,
 
     embed_dim = 128,
     n_encode_layers = 3,

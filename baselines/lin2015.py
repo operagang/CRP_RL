@@ -60,7 +60,7 @@ class Lin2015():
 
         return
 
-    def run(self, x):
+    def run(self, x, restricted=False):
         _, n_bays, n_rows, max_tiers = x.shape  # (1, bays, rows, tiers)
         n_containers = torch.sum(x > 0).item()
         device = torch.device('cpu')
@@ -99,35 +99,36 @@ class Lin2015():
                 best_stack_index = min_indices[torch.randint(len(min_indices), (1,))]  # 랜덤 선택
                 dest_index = best_stack_index.unsqueeze(1)
 
-                while True:
-                    if max_tiers - stack_len[best_stack_index].squeeze() < 2:
-                        break
-                    # Top 컨테이너 제외한 데이터 추출 (0이 아닌 값만)
-                    valid_x = torch.where(env.x.squeeze() > 0, env.x.squeeze(), float('inf'))  # 0을 inf로 변환
-                    valid_x[indices, stack_len - 1] = float('inf')  # 각 stack의 top priority를 inf로 변경
+                if not restricted:
+                    while True:
+                        if max_tiers - stack_len[best_stack_index].squeeze() < 2:
+                            break
+                        # Top 컨테이너 제외한 데이터 추출 (0이 아닌 값만)
+                        valid_x = torch.where(env.x.squeeze() > 0, env.x.squeeze(), float('inf'))  # 0을 inf로 변환
+                        valid_x[indices, stack_len - 1] = float('inf')  # 각 stack의 top priority를 inf로 변경
 
-                    # 최솟값 계산
-                    min_below_top = valid_x.amin(dim=1)
+                        # 최솟값 계산
+                        min_below_top = valid_x.amin(dim=1)
 
-                    # Rule 2 (no tie)
-                    candidate_stacks = (min_below_top < top_priorities)\
-                            & (target_top_priority < top_priorities)\
-                            & (min_priorities[best_stack_index] - 5 < top_priorities)\
-                            & (top_priorities < min_priorities[best_stack_index])
-                    
-                    if candidate_stacks.any():
-                        max_top_priority = top_priorities[candidate_stacks].max()
-                        source_stack = torch.where(candidate_stacks & (top_priorities == max_top_priority))[0]
+                        # Rule 2 (no tie)
+                        candidate_stacks = (min_below_top < top_priorities)\
+                                & (target_top_priority < top_priorities)\
+                                & (min_priorities[best_stack_index] - 5 < top_priorities)\
+                                & (top_priorities < min_priorities[best_stack_index])
+                        
+                        if candidate_stacks.any():
+                            max_top_priority = top_priorities[candidate_stacks].max()
+                            source_stack = torch.where(candidate_stacks & (top_priorities == max_top_priority))[0]
 
-                        source_index = source_stack.unsqueeze(1)
-                        cost += env.step(dest_index, source_index, no_clear=True)
-                        self.check_validity(env.x.squeeze())
+                            source_index = source_stack.unsqueeze(1)
+                            cost += env.step(dest_index, source_index, no_clear=True)
+                            self.check_validity(env.x.squeeze())
 
-                        stack_len = (env.x > 0).sum(dim=2).squeeze()
-                        top_priorities = self.get_top_priority(env.x).squeeze()
-                        min_priorities = torch.where(env.x.squeeze() > 0, env.x.squeeze(), n_containers*10).amin(dim=1)
-                    else:
-                        break
+                            stack_len = (env.x > 0).sum(dim=2).squeeze()
+                            top_priorities = self.get_top_priority(env.x).squeeze()
+                            min_priorities = torch.where(env.x.squeeze() > 0, env.x.squeeze(), n_containers*10).amin(dim=1)
+                        else:
+                            break
 
                 source_index = target_stack.unsqueeze(1)
                 cost += env.step(dest_index, source_index, no_clear=True)
@@ -157,20 +158,41 @@ class Lin2015():
 
 
 if __name__ == "__main__":
-    from benchmarks.benchmarks import find_and_process_file
+    """Option 1"""
+    # # Example usage
+    # from benchmarks.benchmarks import find_and_process_file
+    # folder_path = "./benchmarks/Lee_instances"  # Replace with the folder containing your files
+    # inst_type = "random"
+    # n_bays = 2
+    # n_rows = 16
+    # n_tiers = 6
+    # id = 3
 
-    # Example usage
-    folder_path = "./benchmarks/Lee_instances"  # Replace with the folder containing your files
-    inst_type = "random"
-    n_bays = 2
-    n_rows = 16
-    n_tiers = 6
-    id = 3
+    # input, _ = find_and_process_file(folder_path, inst_type, n_bays, n_rows, n_tiers, id)
 
-    container_tensor, _ = find_and_process_file(folder_path, inst_type, n_bays, n_rows, n_tiers, id)
+    # lin = Lin2015() # batch 연산 X
+    # cost = lin.run(input)
+    # print(cost)
+    """"""
 
-    lin = Lin2015() # batch 연산 X
 
-    cost = lin.run(container_tensor)
+    """Option 2"""
+    import torch
+    inputs = torch.load('./results/20250306_174550/eval_data.pt')
 
-    print(cost)
+    avg_wt, avg_moves = 0, 0
+    for i in range(inputs.shape[0]):
+        input = inputs[i:i+1]
+        lin = Lin2015()
+        wt, moves = lin.run(input, restricted=False)
+        avg_wt += wt
+        avg_moves += moves
+        print(i, wt, moves)
+    
+    avg_wt /= inputs.shape[0]
+    avg_moves /= inputs.shape[0]
+
+    print(avg_wt, avg_moves)
+    """"""
+
+    
