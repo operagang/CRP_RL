@@ -66,7 +66,8 @@ def save_log(args, epoch, loss, wt, reloc, model, clock):
             + f'| {round(new_clock-clock)}s'
     with open(args.log_path + '/log.txt', 'a') as f:
         f.write(message + '\n')
-    torch.save(model.state_dict(), args.log_path + f'/models/epoch({epoch + 1}).pt')
+    if (epoch + 1) % 10 == 0:
+        torch.save(model.state_dict(), args.log_path + f'/models/epoch({epoch + 1}).pt')
     print(message)
     return new_clock
 
