@@ -94,8 +94,9 @@ class Kim2016(): # batch 연산 X
 
         return
 
-    def run(self, x):
+    def run(self, x, restricted=False):
         _, n_bays, n_rows, max_tiers = x.shape  # (1, bays, rows, tiers)
+        num_stacks = n_bays * n_rows
         n_containers = torch.sum(x > 0).item()
         device = torch.device('cpu')
 
@@ -131,25 +132,26 @@ class Kim2016(): # batch 연산 X
                     selected_top_priority = top_priorities[selected_stack]
                     dest_index = selected_stack.unsqueeze(1)
 
-                    while True:
-                        if max_tiers - stack_len[selected_stack].squeeze() < 2:
-                            break
+                    if not restricted:
+                        while True:
+                            if max_tiers - stack_len[selected_stack].squeeze() < 2:
+                                break
 
-                        critical_stacks = self.find_critical_stacks(env.x.squeeze())
-                        # ✅ 1. critical stack 중에서 target_top_priority < priority < selected_top_priority인 stack 선택
-                        selected_critical_stacks = critical_stacks & (top_priorities > target_top_priority) & (top_priorities < selected_top_priority)
+                            critical_stacks = self.find_critical_stacks(env.x.squeeze())
+                            # ✅ 1. critical stack 중에서 target_top_priority < priority < selected_top_priority인 stack 선택
+                            selected_critical_stacks = critical_stacks & (top_priorities > target_top_priority) & (top_priorities < selected_top_priority)
 
-                        # ✅ 2. 선택된 stack 중 top priority가 가장 큰 stack index 찾기
-                        if selected_critical_stacks.any():
-                            max_priority = top_priorities[selected_critical_stacks].max()  # 선택된 stack 중 top priority 최대값
-                            source_index = torch.where(selected_critical_stacks & (top_priorities == max_priority))[0].unsqueeze(1)
-                            cost += env.step(dest_index, source_index, no_clear=True)
-                            self.check_validity(env.x.squeeze())
-                            stack_len = (env.x > 0).sum(dim=2).squeeze()
-                            top_priorities = self.get_top_priority(env.x).squeeze()
-                            selected_top_priority = top_priorities[selected_stack]
-                        else:
-                            break
+                            # ✅ 2. 선택된 stack 중 top priority가 가장 큰 stack index 찾기
+                            if selected_critical_stacks.any():
+                                max_priority = top_priorities[selected_critical_stacks].max()  # 선택된 stack 중 top priority 최대값
+                                source_index = torch.where(selected_critical_stacks & (top_priorities == max_priority))[0].unsqueeze(1)
+                                cost += env.step(dest_index, source_index, no_clear=True)
+                                self.check_validity(env.x.squeeze())
+                                stack_len = (env.x > 0).sum(dim=2).squeeze()
+                                top_priorities = self.get_top_priority(env.x).squeeze()
+                                selected_top_priority = top_priorities[selected_stack]
+                            else:
+                                break
                     
                     source_index = target_stack.unsqueeze(1)
                     cost += env.step(dest_index, source_index, no_clear=True)
@@ -161,25 +163,26 @@ class Kim2016(): # batch 연산 X
                     selected_top_priority = top_priorities[selected_stack]
                     dest_index = selected_stack.unsqueeze(1)
 
-                    while True:
-                        if max_tiers - stack_len[selected_stack].squeeze() < 2:
-                            break
+                    if not restricted:
+                        while True:
+                            if max_tiers - stack_len[selected_stack].squeeze() < 2:
+                                break
 
-                        critical_stacks = self.find_critical_stacks(env.x.squeeze())
-                        # ✅ 1. critical stack 중에서 target_top_priority < priority < selected_top_priority인 stack 선택
-                        selected_critical_stacks = critical_stacks & (top_priorities < selected_top_priority)
+                            critical_stacks = self.find_critical_stacks(env.x.squeeze())
+                            # ✅ 1. critical stack 중에서 target_top_priority < priority < selected_top_priority인 stack 선택
+                            selected_critical_stacks = critical_stacks & (top_priorities < selected_top_priority)
 
-                        # ✅ 2. 선택된 stack 중 top priority가 가장 큰 stack index 찾기
-                        if selected_critical_stacks.any():
-                            max_priority = top_priorities[selected_critical_stacks].max()  # 선택된 stack 중 top priority 최대값
-                            source_index = torch.where(selected_critical_stacks & (top_priorities == max_priority))[0].unsqueeze(1)
-                            cost += env.step(dest_index, source_index, no_clear=True)
-                            self.check_validity(env.x.squeeze())
-                            stack_len = (env.x > 0).sum(dim=2).squeeze()
-                            top_priorities = self.get_top_priority(env.x).squeeze()
-                            selected_top_priority = top_priorities[selected_stack]
-                        else:
-                            break
+                            # ✅ 2. 선택된 stack 중 top priority가 가장 큰 stack index 찾기
+                            if selected_critical_stacks.any():
+                                max_priority = top_priorities[selected_critical_stacks].max()  # 선택된 stack 중 top priority 최대값
+                                source_index = torch.where(selected_critical_stacks & (top_priorities == max_priority))[0].unsqueeze(1)
+                                cost += env.step(dest_index, source_index, no_clear=True)
+                                self.check_validity(env.x.squeeze())
+                                stack_len = (env.x > 0).sum(dim=2).squeeze()
+                                top_priorities = self.get_top_priority(env.x).squeeze()
+                                selected_top_priority = top_priorities[selected_stack]
+                            else:
+                                break
                     
                     source_index = target_stack.unsqueeze(1)
                     cost += env.step(dest_index, source_index, no_clear=True)
@@ -200,21 +203,40 @@ class Kim2016(): # batch 연산 X
 
 
 if __name__ == "__main__":
-    from benchmarks.benchmarks import find_and_process_file
+    """Option 1"""
+    # # Example usage
+    # from benchmarks.benchmarks import find_and_process_file
+    # folder_path = "./benchmarks/Lee_instances"  # Replace with the folder containing your files
+    # inst_type = "random"
+    # n_bays = 2
+    # n_rows = 16
+    # n_tiers = 6
+    # id = 3
 
-    # Example usage
-    folder_path = "./benchmarks/Lee_instances"  # Replace with the folder containing your files
-    inst_type = "random"
-    n_bays = 2
-    n_rows = 16
-    n_tiers = 6
-    id = 3
+    # container_tensor, _ = find_and_process_file(folder_path, inst_type, n_bays, n_rows, n_tiers, id)
 
-    container_tensor, _ = find_and_process_file(folder_path, inst_type, n_bays, n_rows, n_tiers, id)
+    # kim = Kim2016() # batch 연산 X
 
-    kim = Kim2016() # batch 연산 X
+    # cost = kim.run(container_tensor)
+    # print(cost)
+    """"""
 
-    cost = kim.run(container_tensor)
 
-    print(cost)
+    """Option 2"""
+    import torch
+    inputs = torch.load('./results/20250306_174550/eval_data.pt')
 
+    avg_wt, avg_moves = 0, 0
+    for i in range(inputs.shape[0]):
+        input = inputs[i:i+1]
+        arg = Kim2016()
+        wt, moves = arg.run(input, restricted=False)
+        avg_wt += wt
+        avg_moves += moves
+        print(i, wt, moves)
+    
+    avg_wt /= inputs.shape[0]
+    avg_moves /= inputs.shape[0]
+
+    print(avg_wt, avg_moves)
+    """"""
