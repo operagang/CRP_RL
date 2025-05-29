@@ -247,7 +247,117 @@ class Encoder(nn.Module):
             for _ in range(args.n_encode_layers)]
         )
 
-    def forward(self, x, n_rows, t_acc, t_bay, t_row, t_pd, mask=None):
+        self.bay_embedding = args.bay_embedding
+        if self.bay_embedding:
+            self.fcs2 = nn.Sequential(
+                                nn.Linear(args.embed_dim * 2, args.ff_hidden), #bias = True by default
+                                nn.ReLU(),
+                                nn.Linear(args.ff_hidden, args.embed_dim)
+                            ).to(self.device)
+
+
+
+    def en(self, x, tier, empty_prio, t_acc, t_bay, t_row, t_pd, batch, stack, n_bays, n_rows):
+        len_mask = torch.where(x > 0., 1, 0).to(self.device)
+        stack_len = torch.sum(len_mask, dim=2).to(self.device)
+        # total_len = torch.sum(stack_len+1, dim=1).view(batch, 1, 1).repeat(1, stack, tier).to(torch.float32) + 1
+        change_empty = torch.where(x == 0., empty_prio, x).to(self.device)
+        min_due = torch.min(change_empty, dim=2)[0].view(batch, stack, 1).to(self.device)
+
+        #Top Due
+        top_ind=stack_len-1
+        top_ind=torch.where(top_ind>=0,top_ind,0).to(self.device)
+        top_val=torch.gather(change_empty,dim=2,index=top_ind[:,:,None]).to(self.device)
+
+        #Well-Located
+        is_well = torch.where(min_due >= top_val, 1., 0.).to(self.device)
+        #Is target
+        is_target = torch.where((min_due == 1) & (stack_len.unsqueeze(-1) > 0), 1., 0.).to(self.device)
+        is_target[torch.where(torch.sum(is_target, dim=1)==0)[0],0] +=1 #All_Empty인 곳비워져있는곳은 첫번째 스택을target으로 지정
+        #Stack_Height
+        stack_height = stack_len.view(batch,stack,1)
+
+        # ✅ stack → row 변환
+        stack_indices = torch.arange(stack).to(self.device)  # 0, 1, 2, ..., num_stacks-1
+        stack_rows = stack_indices % n_rows + 1  # stack을 row로 변환
+        stack_rows = stack_rows.unsqueeze(0).expand(batch, -1).to(self.device)  # (batch, num_stacks) 형태로 확장
+        # ✅ target stack 찾기
+        target_mask = is_target.squeeze(-1).bool()  # shape: (batch, stack)
+        target_rows = stack_rows[target_mask]  # target stack의 row
+
+        # ✅ stack → bay 변환
+        stack_bays = stack_indices // n_rows + 1  # stack을 row로 변환
+        stack_bays = stack_bays.unsqueeze(0).expand(batch, -1).to(self.device)  # (batch, num_stacks) 형태로 확장
+        target_bays = stack_bays[target_mask]
+
+        # ✅ target stack의 row와 각 stack의 row 차이 계산
+        row_diff = torch.abs(stack_rows - target_rows.unsqueeze(-1)).float().to(self.device)  # (batch, stack) 크기
+        # ✅ min_due와 동일한 shape으로 변환
+        row_diff = row_diff.unsqueeze(-1)  # (batch, stack, 1) 크기로 맞춤
+        bay_diff = torch.abs(stack_bays - target_bays.unsqueeze(-1)).float().to(self.device)  # (batch, stack) 크기
+        bay_diff = bay_diff.unsqueeze(-1)  # (batch, stack, 1) 크기로 맞춤
+
+        #Maximum Due Date
+        md = torch.max(x,dim=2)[0].view(batch, stack, 1).to(self.device)
+        # md = torch.where(md == 0., empty_prio, md).to(self.device)
+
+        if self.add_travel_time:
+            reloc_time = t_row * row_diff + t_bay * bay_diff + t_acc * (bay_diff > 0)
+            truck_time = t_row * stack_rows.unsqueeze(-1) # (1024, 8) → (1024, 8, 1)로 변환
+            travel_time = torch.cat([reloc_time, truck_time], dim=-1)
+            max_val = travel_time.amax(dim=(1,2), keepdim=True)
+            travel_time = travel_time / max_val
+
+
+        if self.norm_priority:
+            n_plus_one = torch.sum(x > 0, dim=[1,2]).view(x.shape[0], 1, 1) + 1
+            min_due = min_due / n_plus_one
+            top_val = top_val / n_plus_one
+            md = md / n_plus_one
+
+
+        # n_bays = x.shape[1] // n_rows
+        if self.norm_layout:
+            if n_rows > 1:
+                stack_rows = (stack_rows - 1) / (n_rows - 1)
+                row_diff = row_diff / (n_rows - 1)
+            else:
+                stack_rows = stack_rows - 1
+            if n_bays > 1:
+                stack_bays = (stack_bays - 1) / (n_bays - 1)
+                bay_diff = bay_diff / (n_bays - 1)
+            else:
+                stack_bays = stack_bays - 1
+
+
+        if self.objective == 'workingtime':
+            ft = torch.cat([min_due, top_val, is_well, is_target, stack_height, tier - stack_height,
+                            stack_rows.unsqueeze(-1), row_diff,
+                            stack_bays.unsqueeze(-1), bay_diff,
+                            md], dim=2).to(self.device)
+        elif self.objective == 'relocations':
+            ft = torch.cat([min_due, top_val, is_well, is_target, stack_height, tier - stack_height,
+                            md], dim=2).to(self.device)
+
+
+        if self.add_fill_ratio:
+            nonzero_count = (x > 0).sum(dim=(1, 2), keepdim=True)
+            layout_size = x.shape[1] * x.shape[2]
+            fill_ratio = nonzero_count / layout_size
+            fill_ratio = fill_ratio.expand(-1, x.shape[1], -1)
+            ft = torch.cat([ft, fill_ratio], dim=2)
+
+        if self.add_layout_ratio:
+            layout_ratio = torch.full_like(min_due, n_bays/n_rows)
+            ft = torch.cat([ft, layout_ratio], dim=2)
+
+        if self.add_travel_time:
+            ft = torch.cat([ft, travel_time], dim=2)
+
+        return ft
+
+
+    def forward(self, x, n_bays, n_rows, t_acc, t_bay, t_row, t_pd, mask=None):
         batch,stack,tier = x.size()
         if self.empty_priority is None:
             empty_priority = torch.sum(x > 0, dim=[1,2]).view(x.shape[0], 1, 1) + 1
@@ -255,113 +365,20 @@ class Encoder(nn.Module):
             assert stack*tier+1 < self.empty_priority, "empty_priority 보다 컨테이너 수가 더 많을 수 있음"
             empty_priority = torch.full((x.shape[0], 1, 1), self.empty_priority).to(self.device)
 
-        def en(x, tier, empty_prio, t_acc, t_bay, t_row, t_pd):
-            len_mask = torch.where(x > 0., 1, 0).to(self.device)
-            stack_len = torch.sum(len_mask, dim=2).to(self.device)
-            # total_len = torch.sum(stack_len+1, dim=1).view(batch, 1, 1).repeat(1, stack, tier).to(torch.float32) + 1
-            change_empty = torch.where(x == 0., empty_prio, x).to(self.device)
-            min_due = torch.min(change_empty, dim=2)[0].view(batch, stack, 1).to(self.device)
 
-            #Top Due
-            top_ind=stack_len-1
-            top_ind=torch.where(top_ind>=0,top_ind,0).to(self.device)
-            top_val=torch.gather(change_empty,dim=2,index=top_ind[:,:,None]).to(self.device)
-
-            #Well-Located
-            is_well = torch.where(min_due >= top_val, 1., 0.).to(self.device)
-            #Is target
-            is_target = torch.where((min_due == 1) & (stack_len.unsqueeze(-1) > 0), 1., 0.).to(self.device)
-            is_target[torch.where(torch.sum(is_target, dim=1)==0)[0],0] +=1 #All_Empty인 곳비워져있는곳은 첫번째 스택을target으로 지정
-            #Stack_Height
-            stack_height = stack_len.view(batch,stack,1)
-
-            # ✅ stack → row 변환
-            stack_indices = torch.arange(stack).to(self.device)  # 0, 1, 2, ..., num_stacks-1
-            stack_rows = stack_indices % n_rows + 1  # stack을 row로 변환
-            stack_rows = stack_rows.unsqueeze(0).expand(batch, -1).to(self.device)  # (batch, num_stacks) 형태로 확장
-            # ✅ target stack 찾기
-            target_mask = is_target.squeeze(-1).bool()  # shape: (batch, stack)
-            target_rows = stack_rows[target_mask]  # target stack의 row
-
-            # ✅ stack → bay 변환
-            stack_bays = stack_indices // n_rows + 1  # stack을 row로 변환
-            stack_bays = stack_bays.unsqueeze(0).expand(batch, -1).to(self.device)  # (batch, num_stacks) 형태로 확장
-            target_bays = stack_bays[target_mask]
-
-            # ✅ target stack의 row와 각 stack의 row 차이 계산
-            row_diff = torch.abs(stack_rows - target_rows.unsqueeze(-1)).float().to(self.device)  # (batch, stack) 크기
-            # ✅ min_due와 동일한 shape으로 변환
-            row_diff = row_diff.unsqueeze(-1)  # (batch, stack, 1) 크기로 맞춤
-            bay_diff = torch.abs(stack_bays - target_bays.unsqueeze(-1)).float().to(self.device)  # (batch, stack) 크기
-            bay_diff = bay_diff.unsqueeze(-1)  # (batch, stack, 1) 크기로 맞춤
-
-            #Maximum Due Date
-            md = torch.max(x,dim=2)[0].view(batch, stack, 1).to(self.device)
-            # md = torch.where(md == 0., empty_prio, md).to(self.device)
-
-            if self.add_travel_time:
-                reloc_time = t_row * row_diff + t_bay * bay_diff + t_acc * (bay_diff > 0)
-                truck_time = t_row * stack_rows.unsqueeze(-1) # (1024, 8) → (1024, 8, 1)로 변환
-                travel_time = torch.cat([reloc_time, truck_time], dim=-1)
-                max_val = travel_time.amax(dim=(1,2), keepdim=True)
-                travel_time = travel_time / max_val
-
-
-            if self.norm_priority:
-                n_plus_one = torch.sum(x > 0, dim=[1,2]).view(x.shape[0], 1, 1) + 1
-                min_due = min_due / n_plus_one
-                top_val = top_val / n_plus_one
-                md = md / n_plus_one
-
-
-            n_bays = x.shape[1] // n_rows
-            if self.norm_layout:
-                if n_rows > 1:
-                    stack_rows = (stack_rows - 1) / (n_rows - 1)
-                    row_diff = row_diff / (n_rows - 1)
-                else:
-                    stack_rows = stack_rows - 1
-                if n_bays > 1:
-                    stack_bays = (stack_bays - 1) / (n_bays - 1)
-                    bay_diff = bay_diff / (n_bays - 1)
-                else:
-                    stack_bays = stack_bays - 1
-
-
-            if self.objective == 'workingtime':
-                ft = torch.cat([min_due, top_val, is_well, is_target, stack_height, tier - stack_height,
-                                stack_rows.unsqueeze(-1), row_diff,
-                                stack_bays.unsqueeze(-1), bay_diff,
-                                md], dim=2).to(self.device)
-            elif self.objective == 'relocatons':
-                ft = torch.cat([min_due, top_val, is_well, is_target, stack_height, tier - stack_height,
-                                md], dim=2).to(self.device)
-
-
-            if self.add_fill_ratio:
-                nonzero_count = (x > 0).sum(dim=(1, 2), keepdim=True)
-                layout_size = x.shape[1] * x.shape[2]
-                fill_ratio = nonzero_count / layout_size
-                fill_ratio = fill_ratio.expand(-1, x.shape[1], -1)
-                ft = torch.cat([ft, fill_ratio], dim=2)
-
-            if self.add_layout_ratio:
-                layout_ratio = torch.full_like(min_due, n_bays/n_rows)
-                ft = torch.cat([ft, layout_ratio], dim=2)
-
-            if self.add_travel_time:
-                ft = torch.cat([ft, travel_time], dim=2)
-
-
-            return ft
-
-
-
-        x = en(x, tier, empty_priority, t_acc, t_bay, t_row, t_pd).to(self.device)
+        x = self.en(x, tier, empty_priority, t_acc, t_bay, t_row, t_pd, batch, stack, n_bays, n_rows).to(self.device)
         x = self.fcs(x)
 
-        for layer in self.encoder_layers:
+        for i, layer in enumerate(self.encoder_layers):
             x = layer(x, mask)
+
+            if self.bay_embedding:
+                x_reshaped = x.view(x.shape[0], n_bays, n_rows, x.shape[-1])
+                bay_emb = x_reshaped.mean(dim=2)
+                bay_emb = bay_emb.unsqueeze(2).repeat(1, 1, n_rows, 1).reshape(bay_emb.shape[0], -1, bay_emb.shape[-1])
+                x = torch.cat([x, bay_emb], dim=2)
+                x = self.fcs2(x)
+
 
         return (x, torch.mean(x, dim=1))
 

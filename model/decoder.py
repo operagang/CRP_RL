@@ -46,7 +46,7 @@ class Decoder(nn.Module):
         cost = cost + env.clear()
 
         # encoder
-        encoder_output = self.encoder(env.x, n_rows, env.t_acc, env.t_bay, env.t_row, env.t_pd)
+        encoder_output = self.encoder(env.x, n_bays, n_rows, env.t_acc, env.t_bay, env.t_row, env.t_pd)
         node_embeddings, graph_embedding = encoder_output
         target_embeddings = node_embeddings[torch.arange(node_embeddings.size(0)), env.target_stack, :]
         mask = env.create_mask()
@@ -78,7 +78,7 @@ class Decoder(nn.Module):
                 break
 
             # encoder
-            encoder_output = self.encoder(env.x, n_rows, env.t_acc, env.t_bay, env.t_row, env.t_pd)
+            encoder_output = self.encoder(env.x, n_bays, n_rows, env.t_acc, env.t_bay, env.t_row, env.t_pd)
             node_embeddings, graph_embedding = encoder_output
             target_embeddings = node_embeddings[torch.arange(node_embeddings.size(0)), env.target_stack, :]
             mask = env.create_mask()
