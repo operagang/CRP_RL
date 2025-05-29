@@ -65,7 +65,7 @@ def main():
     ### test random model ###
     eval_wt, eval_reloc = eval(model, args, eval_data)
     clock = save_log(args, -1, None, eval_wt, eval_reloc, model, clock)
-    solve_benchmarks(model, -1, args, ['random'])
+    solve_benchmarks(model, -1, args, [args.instance_type])
 
     ### main loop ###
     for epoch in range(args.epochs):
@@ -75,7 +75,7 @@ def main():
         clock = save_log(args, epoch, train_loss, eval_wt, eval_reloc, model, clock)
 
         if (epoch + 1) % 10 == 0:
-            solve_benchmarks(model, epoch, args, ['random'])
+            solve_benchmarks(model, epoch, args, [args.instance_type])
 
 
 if __name__ == "__main__":
