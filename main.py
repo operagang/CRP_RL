@@ -12,7 +12,7 @@ from benchmarks.benchmarks import solve_benchmarks
 
 
 args = argparse.Namespace(
-    lr = 0.000001,
+    lr = None,
     epochs = 2000,
 
     batch_num = 100,
@@ -28,19 +28,20 @@ args = argparse.Namespace(
     empty_priority = None, # None or any integer
     norm_priority = True,
     add_fill_ratio = True,
-    norm_layout = False,
-    add_layout_ratio = False,
-    add_travel_time = False,
+    norm_layout = True,
+    add_layout_ratio = True,
+    add_travel_time = True,
+    bay_embedding = True,
 
     train_data_idx = None,
-    train_data_sampler = 'uniform',
+    train_data_sampler = 'uniform', # None or uniform
 
     n_containers = [35,35,70,46],
     n_bays = [1,2,4,2],
     n_rows = [8,4,4,4],
     n_tiers = [6,6,6,8],
     instance_type = 'random',
-    objective = 'relocations', # workingtime or relocations
+    objective = 'workingtime', # workingtime or relocations
 
     load_model_path = None,
 
@@ -64,7 +65,7 @@ def main():
     ### test random model ###
     eval_wt, eval_reloc = eval(model, args, eval_data)
     clock = save_log(args, -1, None, eval_wt, eval_reloc, model, clock)
-    solve_benchmarks(model, -1, args, ['random'])
+    solve_benchmarks(model, -1, args, [args.instance_type])
 
     ### main loop ###
     for epoch in range(args.epochs):
@@ -74,7 +75,7 @@ def main():
         clock = save_log(args, epoch, train_loss, eval_wt, eval_reloc, model, clock)
 
         if (epoch + 1) % 10 == 0:
-            solve_benchmarks(model, epoch, args, ['random'])
+            solve_benchmarks(model, epoch, args, [args.instance_type])
 
 
 if __name__ == "__main__":
