@@ -1,0 +1,113 @@
+lr: 5e-06
+epochs: 2000
+batch_num: 100
+batch_size: [64, 64, 64, 64]
+mini_batch_num: [1, 1, 2, 1]
+baseline: pomo
+pomo_size: 16
+eval_path: ./generator/eval_data/eval_data(35,2,4,6)_upsidedown.pt
+eval_batch_size: 1024
+empty_priority: None
+norm_priority: True
+add_fill_ratio: True
+norm_layout: True
+add_layout_ratio: True
+add_travel_time: True
+train_data_idx: 1
+train_data_sampler: None
+n_containers: [35, 35, 70, 46]
+n_bays: [1, 2, 4, 2]
+n_rows: [8, 4, 4, 4]
+n_tiers: [6, 6, 6, 8]
+instance_type: upsidedown
+objective: workingtime
+load_model_path: None
+embed_dim: 128
+n_encode_layers: 3
+n_heads: 8
+ff_hidden: 512
+tanh_c: 10
+device: cuda:0
+log_path: ./results/20250313_172118
+--------------------
+Epoch: 0 | Train loss: None | Eval WT: 7361.682 | Eval relocs: 59.175 | 1s
+Epoch: 1 | Train loss: -3478.701265658375 | Eval WT: 4030.688 | Eval relocs: 44.166 | 180s
+Epoch: 2 | Train loss: -1903.4035464558622 | Eval WT: 3528.244 | Eval relocs: 42.524 | 146s
+Epoch: 3 | Train loss: -530.2417065937096 | Eval WT: 3487.597 | Eval relocs: 41.484 | 142s
+Epoch: 4 | Train loss: -305.64922087145135 | Eval WT: 3441.339 | Eval relocs: 40.21 | 139s
+Epoch: 5 | Train loss: -279.7072707507864 | Eval WT: 3385.662 | Eval relocs: 38.638 | 138s
+Epoch: 6 | Train loss: -229.3088488126237 | Eval WT: 3360.299 | Eval relocs: 37.867 | 126s
+Epoch: 7 | Train loss: -183.72988332187344 | Eval WT: 3343.816 | Eval relocs: 37.33 | 123s
+Epoch: 8 | Train loss: -154.1374408084579 | Eval WT: 3334.585 | Eval relocs: 36.999 | 122s
+Epoch: 9 | Train loss: -129.2778828629428 | Eval WT: 3328.985 | Eval relocs: 36.864 | 115s
+Epoch: 10 | Train loss: -110.49672603493998 | Eval WT: 3323.141 | Eval relocs: 36.667 | 116s
+Epoch: 11 | Train loss: -103.40125342084613 | Eval WT: 3317.92 | Eval relocs: 36.491 | 138s
+Epoch: 12 | Train loss: -93.74631988894227 | Eval WT: 3318.248 | Eval relocs: 36.539 | 114s
+Epoch: 13 | Train loss: -85.99537501192904 | Eval WT: 3311.513 | Eval relocs: 36.302 | 115s
+Epoch: 14 | Train loss: -82.0127835115365 | Eval WT: 3309.111 | Eval relocs: 36.248 | 112s
+Epoch: 15 | Train loss: -76.37641184016621 | Eval WT: 3305.053 | Eval relocs: 36.121 | 113s
+Epoch: 16 | Train loss: -76.36470026688283 | Eval WT: 3304.743 | Eval relocs: 36.089 | 112s
+Epoch: 17 | Train loss: -73.31126377886508 | Eval WT: 3302.406 | Eval relocs: 36.101 | 111s
+Epoch: 18 | Train loss: -69.59683836105901 | Eval WT: 3300.969 | Eval relocs: 36.081 | 111s
+Epoch: 19 | Train loss: -68.2372840896095 | Eval WT: 3298.843 | Eval relocs: 35.926 | 110s
+Epoch: 20 | Train loss: -65.40861684588315 | Eval WT: 3297.03 | Eval relocs: 35.881 | 110s
+Epoch: 21 | Train loss: -63.89302140813808 | Eval WT: 3294.618 | Eval relocs: 35.87 | 132s
+Epoch: 22 | Train loss: -59.944778121229376 | Eval WT: 3292.015 | Eval relocs: 35.8 | 107s
+Epoch: 23 | Train loss: -59.02257666393933 | Eval WT: 3289.925 | Eval relocs: 35.745 | 108s
+Epoch: 24 | Train loss: -58.26345634829994 | Eval WT: 3287.302 | Eval relocs: 35.67 | 108s
+Epoch: 25 | Train loss: -56.52794575592762 | Eval WT: 3285.59 | Eval relocs: 35.612 | 113s
+Epoch: 26 | Train loss: -54.997040947084805 | Eval WT: 3285.134 | Eval relocs: 35.627 | 110s
+Epoch: 27 | Train loss: -54.11080469827018 | Eval WT: 3284.477 | Eval relocs: 35.601 | 110s
+Epoch: 28 | Train loss: -51.556759716525534 | Eval WT: 3283.105 | Eval relocs: 35.567 | 108s
+Epoch: 29 | Train loss: -50.24101833466862 | Eval WT: 3282.124 | Eval relocs: 35.52 | 107s
+Epoch: 30 | Train loss: -45.92595429338396 | Eval WT: 3281.935 | Eval relocs: 35.55 | 104s
+Epoch: 31 | Train loss: -45.55031791930475 | Eval WT: 3280.537 | Eval relocs: 35.457 | 131s
+Epoch: 32 | Train loss: -45.54465682766706 | Eval WT: 3278.137 | Eval relocs: 35.437 | 108s
+Epoch: 33 | Train loss: -43.426525131482094 | Eval WT: 3277.942 | Eval relocs: 35.438 | 112s
+Epoch: 34 | Train loss: -42.5820333030315 | Eval WT: 3276.82 | Eval relocs: 35.421 | 109s
+Epoch: 35 | Train loss: -40.19545282601558 | Eval WT: 3275.817 | Eval relocs: 35.379 | 106s
+Epoch: 36 | Train loss: -40.0070263152048 | Eval WT: 3276.111 | Eval relocs: 35.39 | 110s
+Epoch: 37 | Train loss: -37.81023297633583 | Eval WT: 3274.198 | Eval relocs: 35.343 | 107s
+Epoch: 38 | Train loss: -37.53630156388087 | Eval WT: 3272.531 | Eval relocs: 35.281 | 108s
+Epoch: 39 | Train loss: -37.34321254279244 | Eval WT: 3271.903 | Eval relocs: 35.287 | 107s
+Epoch: 40 | Train loss: -34.86160358471931 | Eval WT: 3272.696 | Eval relocs: 35.325 | 110s
+Epoch: 41 | Train loss: -34.97343348456106 | Eval WT: 3270.07 | Eval relocs: 35.227 | 132s
+Epoch: 42 | Train loss: -33.72294118306535 | Eval WT: 3270.133 | Eval relocs: 35.24 | 108s
+Epoch: 43 | Train loss: -32.42329040543431 | Eval WT: 3269.523 | Eval relocs: 35.194 | 108s
+Epoch: 44 | Train loss: -32.68691117115051 | Eval WT: 3269.324 | Eval relocs: 35.201 | 105s
+Epoch: 45 | Train loss: -31.24103611663291 | Eval WT: 3268.921 | Eval relocs: 35.183 | 110s
+Epoch: 46 | Train loss: -31.868497738637355 | Eval WT: 3268.583 | Eval relocs: 35.206 | 107s
+Epoch: 47 | Train loss: -30.03043960817284 | Eval WT: 3267.209 | Eval relocs: 35.151 | 109s
+Epoch: 48 | Train loss: -29.996242854634588 | Eval WT: 3266.6 | Eval relocs: 35.162 | 102s
+Epoch: 49 | Train loss: -28.546684138177774 | Eval WT: 3267.828 | Eval relocs: 35.234 | 108s
+Epoch: 50 | Train loss: -27.417699334911482 | Eval WT: 3266.689 | Eval relocs: 35.145 | 104s
+Epoch: 51 | Train loss: -28.436907828466712 | Eval WT: 3266.187 | Eval relocs: 35.125 | 124s
+Epoch: 52 | Train loss: -28.673369426695544 | Eval WT: 3265.191 | Eval relocs: 35.109 | 102s
+Epoch: 53 | Train loss: -27.324671621650687 | Eval WT: 3265.876 | Eval relocs: 35.133 | 105s
+Epoch: 54 | Train loss: -27.150411778162738 | Eval WT: 3265.493 | Eval relocs: 35.109 | 103s
+Epoch: 55 | Train loss: -25.87255787972742 | Eval WT: 3264.055 | Eval relocs: 35.019 | 104s
+Epoch: 56 | Train loss: -25.417501226206305 | Eval WT: 3262.674 | Eval relocs: 35.002 | 97s
+Epoch: 57 | Train loss: -25.49440006453886 | Eval WT: 3262.392 | Eval relocs: 35.016 | 103s
+Epoch: 58 | Train loss: -23.39963389597419 | Eval WT: 3261.907 | Eval relocs: 35.01 | 105s
+Epoch: 59 | Train loss: -24.433723600290133 | Eval WT: 3262.211 | Eval relocs: 35.022 | 103s
+Epoch: 60 | Train loss: -23.866606316430683 | Eval WT: 3263.854 | Eval relocs: 35.045 | 108s
+Epoch: 61 | Train loss: -22.63075825489532 | Eval WT: 3262.458 | Eval relocs: 35.044 | 122s
+Epoch: 62 | Train loss: -24.961956589184148 | Eval WT: 3262.141 | Eval relocs: 35.056 | 102s
+Epoch: 63 | Train loss: -22.849738094973592 | Eval WT: 3262.471 | Eval relocs: 35.031 | 99s
+Epoch: 64 | Train loss: -23.2974959536932 | Eval WT: 3261.918 | Eval relocs: 35.009 | 101s
+Epoch: 65 | Train loss: -21.565144433154718 | Eval WT: 3261.788 | Eval relocs: 34.949 | 105s
+Epoch: 66 | Train loss: -21.358815760485477 | Eval WT: 3260.476 | Eval relocs: 35.015 | 98s
+Epoch: 67 | Train loss: -22.42538548231666 | Eval WT: 3261.738 | Eval relocs: 34.945 | 103s
+Epoch: 68 | Train loss: -22.30098925183597 | Eval WT: 3260.576 | Eval relocs: 34.955 | 101s
+Epoch: 69 | Train loss: -21.68230710514675 | Eval WT: 3260.823 | Eval relocs: 34.969 | 103s
+Epoch: 70 | Train loss: -22.401128420834404 | Eval WT: 3259.309 | Eval relocs: 34.932 | 107s
+Epoch: 71 | Train loss: -21.41297338993768 | Eval WT: 3259.55 | Eval relocs: 34.938 | 124s
+Epoch: 72 | Train loss: -20.573268292818106 | Eval WT: 3259.804 | Eval relocs: 34.842 | 102s
+Epoch: 73 | Train loss: -20.237096153894033 | Eval WT: 3260.202 | Eval relocs: 34.905 | 105s
+Epoch: 74 | Train loss: -20.84777504691002 | Eval WT: 3260.895 | Eval relocs: 34.875 | 104s
+Epoch: 75 | Train loss: -19.852123420266864 | Eval WT: 3259.365 | Eval relocs: 34.835 | 102s
+Epoch: 76 | Train loss: -20.33669804726812 | Eval WT: 3260.165 | Eval relocs: 34.912 | 100s
+Epoch: 77 | Train loss: -20.1897987802786 | Eval WT: 3259.405 | Eval relocs: 34.909 | 106s
+Epoch: 78 | Train loss: -19.494433050683092 | Eval WT: 3258.781 | Eval relocs: 34.895 | 103s
+Epoch: 79 | Train loss: -19.24792422756017 | Eval WT: 3258.595 | Eval relocs: 34.908 | 103s
+Epoch: 80 | Train loss: -20.621100070270998 | Eval WT: 3257.56 | Eval relocs: 34.854 | 93s
