@@ -32,6 +32,7 @@ args = argparse.Namespace(
     add_layout_ratio = True,
     add_travel_time = True,
     bay_embedding = True,
+    lstm = True,
 
     train_data_idx = None,
     train_data_sampler = 'uniform', # None or uniform
