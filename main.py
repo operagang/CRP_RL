@@ -12,13 +12,31 @@ from benchmarks.benchmarks import solve_benchmarks
 
 
 args = argparse.Namespace(
-    lr = None,
+
     epochs = 2000,
+
+    bay_embedding = True, # bay embedding (avg. pooling) concat 할건지 말건지
+    lstm = True, # LSTM 쓸건지 hand-crafted feature 쓸건지
+
+    train_data_idx = None, # multi-task learning -> None, 특정 layout -> Int
+    train_data_sampler = 'uniform', # multi-task learning -> uniform, 특정 layout -> None
+
+    # n_containers / (n_bays * n_rows * n_tiers) = 0.7~0.8 정도가 적당한 듯
+    min_n_containers = [35,35,70,46], # 최소 컨테이너 수 | [35,35,70,46]
+    max_n_containers = [35,35,70,46], # 최대 컨테이너 수 | [35,35,70,46]
+    n_bays = [1,2,4,2], # bay 수
+    n_rows = [8,4,4,4], # row 수
+    n_tiers = [6,6,6,8], # stack 높이
+
+    mini_batch_num = [2,2,4,2], # batch size 몇개로 잘라서 넣을건지 | [1,1,2,1]
+
+
+
+    #### 이 아래는 안건드려도 될 듯 ####
+    lr = None,
 
     batch_num = 100,
     batch_size = [64,64,64,64],
-    mini_batch_num = [2,2,4,2], # [1,1,2,1]
-
     baseline = 'pomo', # \in {None, 'pomo', 'pomoZ'}
     pomo_size = 16,
 
@@ -31,16 +49,7 @@ args = argparse.Namespace(
     norm_layout = True,
     add_layout_ratio = True,
     add_travel_time = True,
-    bay_embedding = True,
-    lstm = True,
 
-    train_data_idx = None, # None or Int
-    train_data_sampler = 'uniform', # None or uniform
-
-    n_containers = [35,35,70,46], # [35,35,70,46]
-    n_bays = [1,2,4,2],
-    n_rows = [8,4,4,4],
-    n_tiers = [6,6,6,8],
     instance_type = 'random',
     objective = 'workingtime', # workingtime or relocations
 
@@ -66,7 +75,7 @@ def main():
     ### test random model ###
     eval_wt, eval_reloc = eval(model, args, eval_data)
     clock = save_log(args, -1, None, eval_wt, eval_reloc, model, clock)
-    solve_benchmarks(model, -1, args, [args.instance_type])
+    # solve_benchmarks(model, -1, args, [args.instance_type])
 
     ### main loop ###
     for epoch in range(args.epochs):

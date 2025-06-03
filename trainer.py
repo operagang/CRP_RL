@@ -14,7 +14,7 @@ from generator.generator import Generator
 
 
 def check_args_validity(args):
-    assert len(args.batch_size) == len(args.mini_batch_num) == len(args.n_containers)\
+    assert len(args.batch_size) == len(args.mini_batch_num) == len(args.max_n_containers)\
     == len(args.n_bays) == len(args.n_rows) == len(args.n_tiers)
     if args.train_data_sampler is not None:
         assert args.train_data_idx is None
@@ -105,7 +105,7 @@ def sample_data_idx(args):
         return args.train_data_idx
 
     if args.train_data_sampler == 'uniform':
-        return random.randint(0, len(args.n_containers) - 1)
+        return random.randint(0, len(args.max_n_containers) - 1)
 
 
 def train(model, optimizer, args):
@@ -116,7 +116,8 @@ def train(model, optimizer, args):
         model.decoder.set_sampler('greedy')
     
     idx = sample_data_idx(args)
-    layout = (args.n_containers[idx], args.n_bays[idx], args.n_rows[idx], args.n_tiers[idx])
+    n_containers = random.randint(args.min_n_containers[idx], args.max_n_containers[idx])
+    layout = (n_containers, args.n_bays[idx], args.n_rows[idx], args.n_tiers[idx])
     print(f'Train data layout = {layout}')
 
     dataset = Generator(

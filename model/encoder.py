@@ -265,7 +265,7 @@ class Encoder(nn.Module):
                 nn.Linear(16, 1, bias = True)
             ).to(self.device)
             self.init_stack_emb = nn.Sequential(
-                nn.Linear(3, self.embed_dim//2, bias=True),
+                nn.Linear(2, self.embed_dim//2, bias=True),
                 nn.ReLU(),
                 nn.Linear(self.embed_dim//2, self.embed_dim, bias=True)
             ).to(self.device)
@@ -503,9 +503,10 @@ class Encoder(nn.Module):
             x = x.view(batch, stack, tier, 1)
 
             asc = self.pos_enc1(torch.linspace(0, 1, tier, device=self.device).repeat(batch, stack, 1).unsqueeze(-1))
-            desc = self.pos_enc2(torch.linspace(1, 0, tier, device=self.device).repeat(batch, stack, 1).unsqueeze(-1))
+            # desc = self.pos_enc2(torch.linspace(1, 0, tier, device=self.device).repeat(batch, stack, 1).unsqueeze(-1))
 
-            x = torch.cat([x, asc, desc], dim=3)
+            # x = torch.cat([x, asc, desc], dim=3)
+            x = torch.cat([x, asc], dim=3)
             x = self.init_stack_emb(x)
             x = x.view(batch * stack, tier, self.embed_dim)
             _, (hidden_states, _) = self.LSTM(x)
