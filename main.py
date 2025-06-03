@@ -17,7 +17,7 @@ args = argparse.Namespace(
 
     batch_num = 100,
     batch_size = [64,64,64,64],
-    mini_batch_num = [1,1,2,1],
+    mini_batch_num = [2,2,4,2], # [1,1,2,1]
 
     baseline = 'pomo', # \in {None, 'pomo', 'pomoZ'}
     pomo_size = 16,
@@ -25,8 +25,8 @@ args = argparse.Namespace(
     eval_path = './generator/eval_data/eval_data(35,2,4,6).pt',
     eval_batch_size = 1024,
 
-    empty_priority = None, # None or any integer
-    norm_priority = True,
+    empty_priority = None, # None or any integer (lstm 시 영향 X)
+    norm_priority = True, # (lstm 시 영향 X)
     add_fill_ratio = True,
     norm_layout = True,
     add_layout_ratio = True,
@@ -34,10 +34,10 @@ args = argparse.Namespace(
     bay_embedding = True,
     lstm = True,
 
-    train_data_idx = None,
+    train_data_idx = None, # None or Int
     train_data_sampler = 'uniform', # None or uniform
 
-    n_containers = [35,35,70,46],
+    n_containers = [35,35,70,46], # [35,35,70,46]
     n_bays = [1,2,4,2],
     n_rows = [8,4,4,4],
     n_tiers = [6,6,6,8],
