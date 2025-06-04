@@ -24,9 +24,6 @@ def check_args_validity(args):
         assert args.pomo_size > 0
     if args.pomo_size is not None:
         assert args.baseline in ['pomo', 'pomoZ']
-    for idx in range(len(args.mini_batch_num)):
-        assert args.batch_size % args.n_layouts_per_batch == 0.0
-        assert (args.batch_size / args.n_layouts_per_batch) % args.mini_batch_num[idx] == 0.0
 
 
 def initialize(args):
@@ -86,12 +83,12 @@ def get_loss(args, wt, ll, reloc, idx):
     if args.baseline is None:
         return (obj * ll).mean()
     elif args.baseline == 'pomo':
-        obj_reshaped = obj.view(args.batch_size // args.n_layouts_per_batch // args.mini_batch_num[idx], args.pomo_size)
+        obj_reshaped = obj.view(args.batch_size // args.mini_batch_num[idx], args.pomo_size)
         obj_mean = obj_reshaped.mean(dim=1, keepdim=True)
         obj_adjusted = (obj_reshaped - obj_mean).view(obj.shape[0])
         return (obj_adjusted * ll).mean()
     elif args.baseline == 'pomoZ':
-        obj_reshaped = obj.view(args.batch_size // args.n_layouts_per_batch // args.mini_batch_num[idx], args.pomo_size)
+        obj_reshaped = obj.view(args.batch_size // args.mini_batch_num[idx], args.pomo_size)
         obj_mean = obj_reshaped.mean(dim=1, keepdim=True)
         obj_std = obj_reshaped.std(dim=1, keepdim=True, unbiased=False)  # 작은 배치에서도 안정적이도록 `unbiased=False` 사용
         obj_adjusted = ((obj_reshaped - obj_mean) / (obj_std + 1e-8)).view(obj.shape[0])
@@ -117,38 +114,42 @@ def train(model, optimizer, args):
         model.decoder.set_sampler('sampling')
     else:
         model.decoder.set_sampler('greedy')
+    
+    idx = sample_data_idx(args)
+    n_containers = random.randint(args.min_n_containers[idx], args.max_n_containers[idx])
+    layout = (n_containers, args.n_bays[idx], args.n_rows[idx], args.n_tiers[idx])
+    print(f'Train data layout = {layout}')
 
+    dataset = Generator(
+        n_samples=args.batch_size * args.batch_num,
+        layout=layout,
+        inst_type=args.instance_type,
+        device=args.device
+    )
+    dataloader = DataLoader(dataset=dataset, batch_size=args.batch_size, shuffle=True)
+    tbar = tqdm(dataloader)
     losses = []
     optimizer.zero_grad()
-    tbar = tqdm(range(args.batch_num), desc="Training")
-    
-    for _ in tbar:
+
+    for batch in tbar: # batch_num
         accumulated_loss = 0.0
 
-        for _ in range(args.n_layouts_per_batch):
-            idx = sample_data_idx(args)
-            n_containers = random.randint(args.min_n_containers[idx], args.max_n_containers[idx])
-            layout = (n_containers, args.n_bays[idx], args.n_rows[idx], args.n_tiers[idx])
-            print(f'Train data layout = {layout}')
-            
-            for _ in range(args.mini_batch_num[idx]):
-                mini = Generator(
-                    n_samples=args.batch_size // args.n_layouts_per_batch // args.mini_batch_num[idx], # int 인거 미리 검사됨
-                    layout=layout,
-                    inst_type=args.instance_type,
-                    device=args.device
-                )[:]
+        for i in range(args.mini_batch_num[idx]):
+            assert args.batch_size % args.mini_batch_num[idx] == 0.0
+            start_idx = i * (args.batch_size // args.mini_batch_num[idx])
+            end_idx = (i + 1) * (args.batch_size // args.mini_batch_num[idx])
+            mini = batch[start_idx:end_idx]  # (batch_size, ...)
 
-                if args.baseline in ['pomo', 'pomoZ']:
-                    mini_expanded = mini.unsqueeze(1).expand(mini.shape[0], args.pomo_size, mini.shape[1], mini.shape[2], mini.shape[3])
-                    mini_expanded = mini_expanded.reshape(mini.shape[0] * args.pomo_size, mini.shape[1], mini.shape[2], mini.shape[3])
-                    wt, ll, reloc = model(mini_expanded.to(args.device))
-                else:
-                    wt, ll, reloc = model(mini.to(args.device))
+            if args.baseline in ['pomo', 'pomoZ']:
+                mini_expanded = mini.unsqueeze(1).expand(mini.shape[0], args.pomo_size, mini.shape[1], mini.shape[2], mini.shape[3])
+                mini_expanded = mini_expanded.reshape(mini.shape[0] * args.pomo_size, mini.shape[1], mini.shape[2], mini.shape[3])
+                wt, ll, reloc = model(mini_expanded.to(args.device))
+            else:
+                wt, ll, reloc = model(mini.to(args.device))
 
-                loss = get_loss(args, wt, ll, reloc, idx) / args.n_layouts_per_batch / args.mini_batch_num[idx]
-                loss.backward()  # `loss.backward()`는 여기서 실행
-                accumulated_loss += loss.item()  # Loss 저장
+            loss = get_loss(args, wt, ll, reloc, idx) / args.mini_batch_num[idx]  # Gradient Accumulation을 위한 평균화
+            loss.backward()  # `loss.backward()`는 여기서 실행
+            accumulated_loss += loss.item()  # Loss 저장
 
         nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0, norm_type=2)  # Gradient Clipping
         optimizer.step()  # `mini_batch_num`번 누적한 후 한 번만 실행
