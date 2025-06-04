@@ -75,7 +75,7 @@ def main():
     ### test random model ###
     eval_wt, eval_reloc = eval(model, args, eval_data)
     clock = save_log(args, -1, None, eval_wt, eval_reloc, model, clock)
-    # solve_benchmarks(model, -1, args, [args.instance_type])
+    solve_benchmarks(model, -1, args, [args.instance_type])
 
     ### main loop ###
     for epoch in range(args.epochs):
