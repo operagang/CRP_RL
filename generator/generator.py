@@ -56,7 +56,7 @@ class Generator(Dataset):
             sorted_data[sorted_data == torch.inf] = 0  # 다시 0으로 복원
             data[:] = sorted_data  # 원본 데이터 업데이트
 
-        print(f'{self.n_samples}개 data 생성시간: {round(time.time() - clock, 2)}초')
+        # print(f'{self.n_samples}개 data 생성시간: {round(time.time() - clock, 2)}초')
 
         batch_size, total_stacks, feature_dim = data.shape
         assert total_stacks == n_bays * n_rows

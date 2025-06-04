@@ -9,6 +9,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+import gc
 from model.model import Model
 from generator.generator import Generator
 
@@ -111,7 +112,7 @@ def sample_data_idx(args):
         return random.randint(0, len(args.max_n_containers) - 1)
 
 
-def train(model, optimizer, args):
+def train(model, optimizer, args, epoch):
     model.train()
     if args.baseline in ['pomo', 'pomoZ']:
         model.decoder.set_sampler('sampling')
@@ -122,14 +123,14 @@ def train(model, optimizer, args):
     optimizer.zero_grad()
     tbar = tqdm(range(args.batch_num), desc="Training")
     
-    for _ in tbar:
+    for step in tbar:
         accumulated_loss = 0.0
 
         for _ in range(args.n_layouts_per_batch):
             idx = sample_data_idx(args)
             n_containers = random.randint(args.min_n_containers[idx], args.max_n_containers[idx])
             layout = (n_containers, args.n_bays[idx], args.n_rows[idx], args.n_tiers[idx])
-            print(f'Train data layout = {layout}')
+            # print(f'Train data layout = {layout}')
             
             for _ in range(args.mini_batch_num[idx]):
                 mini = Generator(
@@ -149,6 +150,12 @@ def train(model, optimizer, args):
                 loss = get_loss(args, wt, ll, reloc, idx) / args.n_layouts_per_batch / args.mini_batch_num[idx]
                 loss.backward()  # `loss.backward()`는 여기서 실행
                 accumulated_loss += loss.item()  # Loss 저장
+
+            if epoch == 0 and step < 100:
+                del loss
+                gc.collect()
+                torch.cuda.empty_cache()
+
 
         nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0, norm_type=2)  # Gradient Clipping
         optimizer.step()  # `mini_batch_num`번 누적한 후 한 번만 실행

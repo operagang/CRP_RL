@@ -27,7 +27,7 @@ args = argparse.Namespace(
     max_n_containers = [35,35,70,46], # 최대 컨테이너 수
     n_bays = [1,2,4,2], # bay 수
     n_rows = [8,4,4,4], # row 수
-    n_tiers = [6,6,6,8], # stack 높이
+    n_tiers = [6,6,6,8], # stack 높이 (6 이랑 8 로 섞어)
 
     batch_size = 128,
     n_layouts_per_batch = 4,
@@ -63,7 +63,7 @@ args = argparse.Namespace(
     tanh_c = 10,
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu'),
-    log_path = f"./results/{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+    log_path = None,
 )
 
 
@@ -74,19 +74,19 @@ def main():
     eval_data = load_eval_data(args)
 
     ### test random model ###
-    # eval_wt, eval_reloc = eval(model, args, eval_data)
-    # clock = save_log(args, -1, None, eval_wt, eval_reloc, model, clock)
-    # solve_benchmarks(model, -1, args, [args.instance_type])
+    eval_wt, eval_reloc = eval(model, args, eval_data)
+    clock = save_log(args, -1, None, eval_wt, eval_reloc, model, clock)
+    solve_benchmarks(model, -1, args, ['random'])
 
     ### main loop ###
     for epoch in range(args.epochs):
 
-        train_loss = train(model, optimizer, args)
+        train_loss = train(model, optimizer, args, epoch)
         eval_wt, eval_reloc = eval(model, args, eval_data)
         clock = save_log(args, epoch, train_loss, eval_wt, eval_reloc, model, clock)
 
         if (epoch + 1) % 10 == 0:
-            solve_benchmarks(model, epoch, args, [args.instance_type])
+            solve_benchmarks(model, epoch, args, ['random'])
 
 
 if __name__ == "__main__":
