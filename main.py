@@ -23,15 +23,15 @@ args = argparse.Namespace(
     train_data_sampler = 'uniform', # multi-task learning -> uniform, 특정 layout -> None
 
     # n_containers / (n_bays * n_rows * n_tiers) = 0.7~0.8 정도가 적당한 듯
-    min_n_containers = [35,35,70,46], # 최소 컨테이너 수
-    max_n_containers = [35,35,70,46], # 최대 컨테이너 수
+    min_n_containers = [35,35,60,40], # 최소 컨테이너 수
+    max_n_containers = [35,35,60,40], # 최대 컨테이너 수
     n_bays = [1,2,4,2], # bay 수
     n_rows = [8,4,4,4], # row 수
     n_tiers = [6,6,6,8], # stack 높이 (6 이랑 8 로 섞어)
 
     batch_size = 128,
     n_layouts_per_batch = 4,
-    mini_batch_num = [2,2,2,2], # batch size 몇개로 잘라서 넣을건지
+    mini_batch_num = [1,1,2,1], # batch size 몇개로 잘라서 넣을건지
 
 
 
@@ -74,9 +74,9 @@ def main():
     eval_data = load_eval_data(args)
 
     ### test random model ###
-    eval_wt, eval_reloc = eval(model, args, eval_data)
-    clock = save_log(args, -1, None, eval_wt, eval_reloc, model, clock)
-    solve_benchmarks(model, -1, args, ['random'])
+    # eval_wt, eval_reloc = eval(model, args, eval_data)
+    # clock = save_log(args, -1, None, eval_wt, eval_reloc, model, clock)
+    # solve_benchmarks(model, -1, args, ['random'])
 
     ### main loop ###
     for epoch in range(args.epochs):
