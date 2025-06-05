@@ -13,7 +13,7 @@ from benchmarks.benchmarks import solve_benchmarks
 
 args = argparse.Namespace(
 
-    epochs = 100,
+    epochs = 2000,
 
     bay_embedding = True, # bay embedding (avg. pooling) concat 할건지 말건지
     lstm = True, # LSTM 쓸건지 hand-crafted feature 쓸건지
@@ -22,11 +22,18 @@ args = argparse.Namespace(
     train_data_idx = None, # multi-task learning -> None, 특정 layout -> Int
     train_data_sampler = 'uniform', # multi-task learning -> uniform, 특정 layout -> None
 
-    min_n_containers = 35, # 최소 컨테이너 수
-    max_n_containers = 70, # 최대 컨테이너 수
+    # n_containers / (n_bays * n_rows * n_tiers) = 0.7~0.8 정도가 적당한 듯
+    min_n_containers = [35,35,60,40], # 최소 컨테이너 수
+    max_n_containers = [35,35,60,40], # 최대 컨테이너 수
+    n_bays = [1,2,4,2], # bay 수
+    n_rows = [8,4,4,4], # row 수
+    n_tiers = [6,6,6,8], # stack 높이 (6 이랑 8 로 섞어)
+
     batch_size = 128,
     n_layouts_per_batch = 4,
-    mini_batch_num = [1,2],
+    mini_batch_num = [1,1,2,1], # batch size 몇개로 잘라서 넣을건지
+
+
 
     #### 이 아래는 안건드려도 될 듯 ####
     lr = None,
@@ -67,9 +74,9 @@ def main():
     eval_data = load_eval_data(args)
 
     ### test random model ###
-    eval_wt, eval_reloc = eval(model, args, eval_data)
-    clock = save_log(args, -1, None, eval_wt, eval_reloc, model, clock)
-    solve_benchmarks(model, -1, args, ['random'])
+    # eval_wt, eval_reloc = eval(model, args, eval_data)
+    # clock = save_log(args, -1, None, eval_wt, eval_reloc, model, clock)
+    # solve_benchmarks(model, -1, args, ['random'])
 
     ### main loop ###
     for epoch in range(args.epochs):
@@ -86,12 +93,11 @@ if __name__ == "__main__":
     
     lrs = [
         # 1e-05,
-        # 5e-06,
+        5e-06,
         # 1e-06,
         # 5e-07,
         # 1e-07,
-        # 5e-08,
-        3*1e-4
+        # 5e-08
     ]
     for lr in lrs:
         args.lr = lr

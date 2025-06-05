@@ -15,14 +15,23 @@ from generator.generator import Generator
 
 
 def check_args_validity(args):
+    assert len(args.mini_batch_num) == len(args.min_n_containers) == len(args.max_n_containers)\
+    == len(args.n_bays) == len(args.n_rows) == len(args.n_tiers)
+    if args.train_data_sampler is not None:
+        assert args.train_data_idx is None
+    if args.train_data_idx is not None:
+        assert args.train_data_sampler is None
     if args.baseline in ['pomo', 'pomoZ']:
         assert args.pomo_size > 0
     if args.pomo_size is not None:
         assert args.baseline in ['pomo', 'pomoZ']
+    for idx in range(len(args.mini_batch_num)):
+        assert args.batch_size % args.n_layouts_per_batch == 0.0
+        assert (args.batch_size / args.n_layouts_per_batch) % args.mini_batch_num[idx] == 0.0
 
 
 def initialize(args):
-    #check_args_validity(args)
+    check_args_validity(args)
     print(f'* Device: {args.device}')
     model = Model(args).to(args.device)
     if args.load_model_path is not None:
@@ -102,31 +111,6 @@ def sample_data_idx(args):
     if args.train_data_sampler == 'uniform':
         return random.randint(0, len(args.max_n_containers) - 1)
 
-def sample_layout(min_n_containers, max_n_containers, utilization_range=(0.6, 0.8)):
-    while True:
-        n_containers = random.randint(min_n_containers, max_n_containers)
-        
-        n_tiers = random.choice([6, 8]) # tier는 6 or 8 고정
-        min_total = int(n_containers / utilization_range[1])
-        max_total = int(n_containers / utilization_range[0])
-
-        possible_pairs = []
-        for total_slots in range(min_total, max_total + 1):
-            if total_slots % n_tiers != 0: # int check
-                continue
-            area = total_slots // n_tiers # bay x row
-            for n_bays in range(1, area + 1): # 가능한 모든 쌍 찾기
-                if area % n_bays == 0:
-                    n_rows = area // n_bays
-                    if n_rows > n_bays:  # 조건 추가
-                        possible_pairs.append((n_bays, n_rows))
-                    
-
-        if possible_pairs:
-            n_bays, n_rows = random.choice(possible_pairs)
-            return n_containers, n_bays, n_rows, n_tiers
-        else:
-            return 35, 2, 4, 6 # temp
 
 def train(model, optimizer, args, epoch):
     model.train()
@@ -143,13 +127,10 @@ def train(model, optimizer, args, epoch):
         accumulated_loss = 0.0
 
         for _ in range(args.n_layouts_per_batch):
-            n_containers, n_bays, n_rows, n_tiers = sample_layout(min_n_containers=args.min_n_containers, max_n_containers=args.max_n_containers)
-            
-            if n_containers<37:
-                idx=0
-            else:
-                idx=1
-            layout = (n_containers, n_bays, n_rows, n_tiers)
+            idx = sample_data_idx(args)
+            n_containers = random.randint(args.min_n_containers[idx], args.max_n_containers[idx])
+            layout = (n_containers, args.n_bays[idx], args.n_rows[idx], args.n_tiers[idx])
+            # print(f'Train data layout = {layout}')
             
             for _ in range(args.mini_batch_num[idx]):
                 mini = Generator(
