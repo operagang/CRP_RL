@@ -252,13 +252,7 @@ class Encoder(nn.Module):
             nn.Linear(self.embed_dim//2, self.embed_dim)
         ).to(self.device)
         if self.lstm:
-            self.pos_enc1 = nn.Sequential(
-                nn.Linear(1, 16, bias=True),
-                nn.ReLU(),
-                #nn.Dropout(.5),
-                nn.Linear(16, 1, bias = True)
-            ).to(self.device)
-            self.pos_enc2 = nn.Sequential(
+            self.pos_enc = nn.Sequential(
                 nn.Linear(1, 16, bias=True),
                 nn.ReLU(),
                 #nn.Dropout(.5),
@@ -275,7 +269,7 @@ class Encoder(nn.Module):
                 batch_first = True,
                 num_layers = 1
             ).to(self.device)
-            self.LSTM_embed = nn.Linear(self.embed_dim, self.embed_dim, bias=True).to(self.device)
+            self.LSTM_embed = nn.Linear(self.embed_dim*2, self.embed_dim, bias=True).to(self.device)
             self.fcs3 = nn.Sequential(
                 nn.Linear(self.embed_dim * 2, args.ff_hidden), #bias = True by default
                 nn.ReLU(),
@@ -502,16 +496,18 @@ class Encoder(nn.Module):
             x = torch.where(x > 0, 1 - (x - 1) / x.amax(dim=(1, 2), keepdim=True), x)
             x = x.view(batch, stack, tier, 1)
 
-            asc = self.pos_enc1(torch.linspace(0, 1, tier, device=self.device).repeat(batch, stack, 1).unsqueeze(-1))
+            asc = self.pos_enc(torch.linspace(0, 1, tier, device=self.device).repeat(batch, stack, 1).unsqueeze(-1))
             # desc = self.pos_enc2(torch.linspace(1, 0, tier, device=self.device).repeat(batch, stack, 1).unsqueeze(-1))
 
             # x = torch.cat([x, asc, desc], dim=3)
             x = torch.cat([x, asc], dim=3)
             x = self.init_stack_emb(x)
             x = x.view(batch * stack, tier, self.embed_dim)
-            _, (hidden_states, _) = self.LSTM(x)
+            output, (hidden_states, _) = self.LSTM(x)
+            o = torch.mean(output, dim=1).view(batch, stack, self.embed_dim)
             h = hidden_states[0,:,:].view(batch, stack, self.embed_dim)
-            x = self.LSTM_embed(h)
+            x = torch.cat([o,h], dim=2)
+            x = self.LSTM_embed(x)
 
             x = torch.cat([x, x2], dim=2)
             x = self.fcs3(x)
