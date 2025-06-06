@@ -13,10 +13,10 @@ from benchmarks.benchmarks import solve_benchmarks
 
 args = argparse.Namespace(
 
-    epochs = 100,
+    epochs = 1000,
 
     bay_embedding = True, # bay embedding (avg. pooling) concat 할건지 말건지
-    lstm = True, # LSTM 쓸건지 hand-crafted feature 쓸건지
+    lstm = False, # LSTM 쓸건지 hand-crafted feature 쓸건지
     baseline = 'pomoZ', # \in {None, 'pomo', 'pomoZ'}
 
     train_data_idx = None, # multi-task learning -> None, 특정 layout -> Int
