@@ -13,10 +13,10 @@ class Model(nn.Module):
 
 
     # cost length ll:log_softmax  sum of probability  pi:predicted tour
-    def forward(self, x):
-        decoder_output = self.decoder(x)
-        cost, ll, reloc = decoder_output
-        return cost, ll, reloc
+    def forward(self, x, max_retrievals):
+        decoder_output = self.decoder(x, max_retrievals)
+        cost, ll, reloc, wt_lb = decoder_output
+        return cost, ll, reloc, wt_lb
 
 
 

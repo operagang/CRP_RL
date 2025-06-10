@@ -142,13 +142,19 @@ def train(model, optimizer, args, epoch):
     for step in tbar:
         accumulated_loss = 0.0
 
-        for _ in range(args.n_layouts_per_batch):
-            n_containers, n_bays, n_rows, n_tiers = sample_layout(min_n_containers=args.min_n_containers, max_n_containers=args.max_n_containers)
-            
-            if n_containers<37:
-                idx=0
+        for i in range(args.n_layouts_per_batch):
+            if i >= args.large_n_layouts_per_batch:
+                n_containers, n_bays, n_rows, n_tiers = sample_layout(min_n_containers=args.min_n_containers, max_n_containers=args.max_n_containers)
+                if n_containers<37:
+                    idx=0
+                else:
+                    idx=1
+                assert args.max_retrievals is None
             else:
-                idx=1
+                n_containers, n_bays, n_rows, n_tiers = sample_layout(min_n_containers=args.large_min_n_containers, max_n_containers=args.large_max_n_containers)
+                idx = 0
+                assert args.max_retrievals is not None
+            max_retrievals = args.max_retrievals
             layout = (n_containers, n_bays, n_rows, n_tiers)
             
             for _ in range(args.mini_batch_num[idx]):
@@ -162,9 +168,10 @@ def train(model, optimizer, args, epoch):
                 if args.baseline in ['pomo', 'pomoZ']:
                     mini_expanded = mini.unsqueeze(1).expand(mini.shape[0], args.pomo_size, mini.shape[1], mini.shape[2], mini.shape[3])
                     mini_expanded = mini_expanded.reshape(mini.shape[0] * args.pomo_size, mini.shape[1], mini.shape[2], mini.shape[3])
-                    wt, ll, reloc = model(mini_expanded.to(args.device))
+                    wt, ll, reloc, wt_lb = model(mini_expanded.to(args.device), max_retrievals)
                 else:
-                    wt, ll, reloc = model(mini.to(args.device))
+                    wt, ll, reloc, wt_lb = model(mini.to(args.device), max_retrievals)
+                wt = (wt + args.lower_bound_weight * wt_lb).to(args.device)
 
                 loss = get_loss(args, wt, ll, reloc, idx) / args.n_layouts_per_batch / args.mini_batch_num[idx]
                 loss.backward()  # `loss.backward()`는 여기서 실행
