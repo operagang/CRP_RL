@@ -16,7 +16,7 @@ args = argparse.Namespace(
     epochs = 1000,
 
     bay_embedding = True, # bay embedding (avg. pooling) concat 할건지 말건지
-    lstm = False, # LSTM 쓸건지 hand-crafted feature 쓸건지
+    lstm = True, # LSTM 쓸건지 hand-crafted feature 쓸건지
     baseline = 'pomoZ', # \in {None, 'pomo', 'pomoZ'}
 
     train_data_idx = None, # multi-task learning -> None, 특정 layout -> Int
@@ -78,7 +78,7 @@ def main():
         eval_wt, eval_reloc = eval(model, args, eval_data)
         clock = save_log(args, epoch, train_loss, eval_wt, eval_reloc, model, clock)
 
-        if (epoch + 1) % 10 == 0:
+        if (epoch + 1) % 1 == 0:
             solve_benchmarks(model, epoch, args, ['random'])
 
 
