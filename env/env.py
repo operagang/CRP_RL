@@ -123,7 +123,7 @@ class Env():
             curr_bay = next_bay
             curr_row = 0
 
-        lb2 = 2 * self.t_row * self.count_disorder_per_row(x).sum().item()
+        lb2 = (2 * self.t_row + self.t_pd) * self.count_disorder_per_row(x).sum().item()
 
         return lb1 + lb2
 

@@ -35,6 +35,8 @@ args = argparse.Namespace(
     max_retrievals = 20,
     lower_bound_weight = 1,
 
+    load_model_path = None,
+
     #### 이 아래는 안건드려도 될 듯 ####
     lr = None,
 
@@ -53,8 +55,6 @@ args = argparse.Namespace(
 
     instance_type = 'random',
     objective = 'workingtime', # workingtime or relocations
-
-    load_model_path = None,
 
     embed_dim = 128,
     n_encode_layers = 3,
