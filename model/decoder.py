@@ -33,7 +33,7 @@ class Decoder(nn.Module):
         self.sampler = self.samplers[decode_type]
 
 
-    def forward(self, x):
+    def forward(self, x, max_retrievals):
 
         batch, n_bays, n_rows, max_tiers = x.size()
         max_stacks = n_bays * n_rows
@@ -41,7 +41,7 @@ class Decoder(nn.Module):
         cost = torch.zeros(batch).to(self.device)
         ll = torch.zeros(batch).to(self.device)
 
-        env = Env(self.device, x)
+        env = Env(self.device, x, max_retrievals)
 
         cost = cost + env.clear()
 
@@ -69,12 +69,12 @@ class Decoder(nn.Module):
             actions = self.sampler(log_p)
 
             tmp_log_p = log_p.clone()
-            tmp_log_p[env.empty, :] = 0 # 반드시 step 이전에
+            tmp_log_p[(env.empty | env.early_stopped), :] = 0 # 반드시 step 이전에
             ll = ll + torch.gather(input=tmp_log_p, dim=1, index=actions).squeeze(-1).to(self.device)
-
+            
             cost = cost + env.step(dest_index=actions)
 
-            if env.all_empty():
+            if env.all_terminated():
                 break
 
             # encoder
@@ -83,7 +83,7 @@ class Decoder(nn.Module):
             target_embeddings = node_embeddings[torch.arange(node_embeddings.size(0)), env.target_stack, :]
             mask = env.create_mask()
 
-        return cost, ll, env.relocations
+        return cost, ll, env.relocations, env.wt_lb
 
 
 
