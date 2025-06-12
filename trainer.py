@@ -32,7 +32,7 @@ def initialize(args):
     set_log(args)
     clock = time.time()
     print(f'* lr: {args.lr}, epochs: {args.epochs}')
-    print(f'* batch_num: {args.batch_num}, batch_size: {args.batch_size}, mini_batch_num: {args.mini_batch_num}')
+    print(f'* batch_num: {args.batch_num}, batch_size: {args.batch_size}')
     print(f'* baseline: {args.baseline}, pomo_size: {args.pomo_size}')
     print(f'* empty_priority: {args.empty_priority}, norm_priority: {args.norm_priority}')
     return model, optimizer, clock
@@ -67,7 +67,7 @@ def save_log(args, epoch, loss, wt, reloc, model, clock):
     return new_clock
 
 
-def get_loss(args, wt, ll, reloc, idx):
+def get_loss(args, wt, ll, reloc, mini_batch_num):
     if args.objective == 'workingtime':
         obj = wt
     elif args.objective == 'relocations':
@@ -78,12 +78,12 @@ def get_loss(args, wt, ll, reloc, idx):
     if args.baseline is None:
         return (obj * ll).mean()
     elif args.baseline == 'pomo':
-        obj_reshaped = obj.view(args.batch_size // args.n_layouts_per_batch // args.mini_batch_num[idx], args.pomo_size)
+        obj_reshaped = obj.view(args.batch_size // args.n_layouts_per_batch // mini_batch_num, args.pomo_size)
         obj_mean = obj_reshaped.mean(dim=1, keepdim=True)
         obj_adjusted = (obj_reshaped - obj_mean).view(obj.shape[0])
         return (obj_adjusted * ll).mean()
     elif args.baseline == 'pomoZ':
-        obj_reshaped = obj.view(args.batch_size // args.n_layouts_per_batch // args.mini_batch_num[idx], args.pomo_size)
+        obj_reshaped = obj.view(args.batch_size // args.n_layouts_per_batch // mini_batch_num, args.pomo_size)
         obj_mean = obj_reshaped.mean(dim=1, keepdim=True)
         obj_std = obj_reshaped.std(dim=1, keepdim=True, unbiased=False)  # 작은 배치에서도 안정적이도록 `unbiased=False` 사용
         obj_adjusted = ((obj_reshaped - obj_mean) / (obj_std + 1e-8)).view(obj.shape[0])
@@ -95,12 +95,12 @@ def get_loss(args, wt, ll, reloc, idx):
     #     return (norm_obj * ll).mean()
 
 
-def sample_data_idx(args):
-    if args.train_data_idx is not None:
-        return args.train_data_idx
+# def sample_data_idx(args):
+#     if args.train_data_idx is not None:
+#         return args.train_data_idx
 
-    if args.train_data_sampler == 'uniform':
-        return random.randint(0, len(args.max_n_containers) - 1)
+#     if args.train_data_sampler == 'uniform':
+#         return random.randint(0, len(args.max_n_containers) - 1)
 
 def sample_layout(min_n_containers, max_n_containers, utilization_range=(0.6, 0.8)):
     while True:
@@ -118,7 +118,7 @@ def sample_layout(min_n_containers, max_n_containers, utilization_range=(0.6, 0.
             for n_bays in range(1, area + 1): # 가능한 모든 쌍 찾기
                 if area % n_bays == 0:
                     n_rows = area // n_bays
-                    if n_rows > n_bays:  # 조건 추가
+                    if n_rows > n_bays and n_rows <= 16:  # 조건 추가
                         possible_pairs.append((n_bays, n_rows))
                     
 
@@ -146,20 +146,21 @@ def train(model, optimizer, args, epoch):
             if i >= args.large_n_layouts_per_batch:
                 n_containers, n_bays, n_rows, n_tiers = sample_layout(min_n_containers=args.min_n_containers, max_n_containers=args.max_n_containers)
                 if n_containers<37:
-                    idx=0
+                    mini_batch_num = 1
                 else:
-                    idx=1
-                assert args.max_retrievals is None
+                    mini_batch_num = 2
+                max_retrievals = None
             else:
                 n_containers, n_bays, n_rows, n_tiers = sample_layout(min_n_containers=args.large_min_n_containers, max_n_containers=args.large_max_n_containers)
-                idx = 0
+                mini_batch_num = 4
                 assert args.max_retrievals is not None
-            max_retrievals = args.max_retrievals
+                max_retrievals = args.max_retrievals
+            assert type(args.batch_size // args.n_layouts_per_batch // mini_batch_num) == int
             layout = (n_containers, n_bays, n_rows, n_tiers)
             
-            for _ in range(args.mini_batch_num[idx]):
+            for _ in range(mini_batch_num):
                 mini = Generator(
-                    n_samples=args.batch_size // args.n_layouts_per_batch // args.mini_batch_num[idx], # int 인거 미리 검사됨
+                    n_samples=args.batch_size // args.n_layouts_per_batch // mini_batch_num, # int 인거 미리 검사됨
                     layout=layout,
                     inst_type=args.instance_type,
                     device=args.device
@@ -173,7 +174,7 @@ def train(model, optimizer, args, epoch):
                     wt, ll, reloc, wt_lb = model(mini.to(args.device), max_retrievals)
                 wt = (wt + args.lower_bound_weight * wt_lb).to(args.device)
 
-                loss = get_loss(args, wt, ll, reloc, idx) / args.n_layouts_per_batch / args.mini_batch_num[idx]
+                loss = get_loss(args, wt, ll, reloc, mini_batch_num) / args.n_layouts_per_batch / mini_batch_num
                 loss.backward()  # `loss.backward()`는 여기서 실행
                 accumulated_loss += loss.item()  # Loss 저장
 
@@ -204,7 +205,7 @@ def eval(model, args, dataset):
     wts = []; relocs = []
     for batch in eval_loader:
         with torch.no_grad():
-            wt, _, reloc = model(batch.to(args.device))
+            wt, _, reloc, _ = model(batch.to(args.device), None)
             wts.extend(wt.tolist())
             relocs.extend(reloc.tolist())
     print(f'Eval 시간: {round(time.time() - clock, 1)}s')

@@ -19,23 +19,21 @@ args = argparse.Namespace(
     lstm = True, # LSTM 쓸건지 hand-crafted feature 쓸건지
     baseline = 'pomoZ', # \in {None, 'pomo', 'pomoZ'}
 
-    train_data_idx = None, # multi-task learning -> None, 특정 layout -> Int
-    train_data_sampler = 'uniform', # multi-task learning -> uniform, 특정 layout -> None
+    # train_data_idx = None, # multi-task learning -> None, 특정 layout -> Int
+    # train_data_sampler = 'uniform', # multi-task learning -> uniform, 특정 layout -> None
 
     batch_size = 128,
     n_layouts_per_batch = 4,
     min_n_containers = 35, # 최소 컨테이너 수
     max_n_containers = 70, # 최대 컨테이너 수
-    mini_batch_num = [1,2],
 
     large_n_layouts_per_batch = 1,
-    large_min_n_containers = 35, # 최소 컨테이너 수
-    large_max_n_containers = 50, # 최대 컨테이너 수
-    large_mini_batch_num = [1,2],
-    max_retrievals = 20,
+    large_min_n_containers = 70, # 최소 컨테이너 수
+    large_max_n_containers = 140, # 최대 컨테이너 수
+    max_retrievals = 70,
     lower_bound_weight = 1,
 
-    load_model_path = None,
+    load_model_path = './results/f.attn_multi_pomoZ/models/epoch(100).pt',
 
     #### 이 아래는 안건드려도 될 듯 ####
     lr = None,
@@ -74,9 +72,9 @@ def main():
     eval_data = load_eval_data(args)
 
     ### test random model ###
-    # eval_wt, eval_reloc = eval(model, args, eval_data)
-    # clock = save_log(args, -1, None, eval_wt, eval_reloc, model, clock)
-    # solve_benchmarks(model, -1, args, ['random'])
+    eval_wt, eval_reloc = eval(model, args, eval_data)
+    clock = save_log(args, -1, None, eval_wt, eval_reloc, model, clock)
+    solve_benchmarks(model, -1, args, ['random'])
 
     ### main loop ###
     for epoch in range(args.epochs):

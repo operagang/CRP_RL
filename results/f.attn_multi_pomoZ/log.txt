@@ -191,3 +191,4 @@ Epoch: 156 | Train loss: -0.09759406156465861 | Eval WT: 3001.036 | Eval relocs:
 Epoch: 157 | Train loss: -0.08157739397875853 | Eval WT: 3007.917 | Eval relocs: 29.32 | 1546s
 Epoch: 158 | Train loss: -0.12229358656681567 | Eval WT: 2998.695 | Eval relocs: 29.103 | 1394s
 Epoch: 159 | Train loss: -0.07377838711518994 | Eval WT: 3008.745 | Eval relocs: 29.479 | 1650s
+Epoch: 160 | Train loss: -0.0774183655822301 | Eval WT: 3002.159 | Eval relocs: 29.096 | 2272s
