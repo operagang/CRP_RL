@@ -45,7 +45,7 @@ args = argparse.Namespace(
     max_retrievals = 70,
     lower_bound_weight = 1,
 
-    load_model_path = './results/f.attn_multi_pomoZ/models/epoch(100).pt',
+    load_model_path = './baselines/models/proposed/epoch(100).pt',
 
     #### 이 아래는 안건드려도 될 듯 ####
     lr = None,
