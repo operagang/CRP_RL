@@ -47,7 +47,7 @@ def save_data(data, save_path, inst_type, n_bays, n_rows, n_tiers, n_containers,
 
 
 if __name__=='__main__':
-    save_path = './benchmarks/Shin_instances'
+    save_path = './benchmarks/New_instances'
     
     n_rows = 16
     for n_bays in [30]:
