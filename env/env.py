@@ -1,7 +1,7 @@
 import torch
 
 class Env():
-    def __init__(self, device, x, max_retrievals):
+    def __init__(self, device, x, max_retrievals=None):
         super().__init__()
         #x: (batch_size) X (max_stacks) X (max_tiers)
         self.t_pd = 30

@@ -37,7 +37,7 @@ class Decoder(nn.Module):
 
         batch, n_bays, n_rows, max_tiers = x.size()
         max_stacks = n_bays * n_rows
-        
+
         cost = torch.zeros(batch).to(self.device)
         ll = torch.zeros(batch).to(self.device)
 
@@ -45,8 +45,18 @@ class Decoder(nn.Module):
 
         cost = cost + env.clear()
 
-        # encoder
+        """ encoder """
         encoder_output = self.encoder(env.x, n_bays, n_rows, env.t_acc, env.t_bay, env.t_row, env.t_pd)
+
+        # x_new = env.x.clone()
+        # batch_max = x_new.view(x_new.shape[0], -1).amax(dim=1)
+        # mask = x_new > 20  # shape: [5, 16, 6]
+        # for b in range(x_new.shape[0]):
+        #     x_new[b][mask[b]] = batch_max[b]
+        #     # x_new[b][mask[b]] = 21
+        # encoder_output = self.encoder(x_new, n_bays, n_rows, env.t_acc, env.t_bay, env.t_row, env.t_pd)
+        """"""
+
         node_embeddings, graph_embedding = encoder_output
         target_embeddings = node_embeddings[torch.arange(node_embeddings.size(0)), env.target_stack, :]
         mask = env.create_mask()
@@ -77,8 +87,18 @@ class Decoder(nn.Module):
             if env.all_terminated():
                 break
 
-            # encoder
+            """ encoder """
             encoder_output = self.encoder(env.x, n_bays, n_rows, env.t_acc, env.t_bay, env.t_row, env.t_pd)
+
+            # x_new = env.x.clone()
+            # batch_max = x_new.view(x_new.shape[0], -1).amax(dim=1)
+            # mask = x_new > 20  # shape: [5, 16, 6]
+            # for b in range(x_new.shape[0]):
+            #     x_new[b][mask[b]] = batch_max[b]
+            #     # x_new[b][mask[b]] = 21
+            # encoder_output = self.encoder(x_new, n_bays, n_rows, env.t_acc, env.t_bay, env.t_row, env.t_pd)
+            """"""
+
             node_embeddings, graph_embedding = encoder_output
             target_embeddings = node_embeddings[torch.arange(node_embeddings.size(0)), env.target_stack, :]
             mask = env.create_mask()

@@ -175,6 +175,7 @@ class Durasevic2025():
 
 if __name__ == "__main__":
     from benchmarks.benchmarks import find_and_process_file
+    import time
 
     # # Example usage
     # folder_path = "./benchmarks/Lee_instances"  # Replace with the folder containing your files
@@ -208,6 +209,7 @@ if __name__ == "__main__":
 
                     container_tensor, inst_name = find_and_process_file(folder_path, inst_type, n_bays, n_rows, n_tiers, id)
 
+                    s = time.time()
                     arg = Durasevic2025() # batch 연산 X
 
                     cost = arg.run(container_tensor)
@@ -215,11 +217,11 @@ if __name__ == "__main__":
                     print(f'inst_name: {inst_name}')
                     print(f'cost: {cost}')
 
-                    results.append([inst_name, cost[0], cost[1]])
+                    results.append([inst_name, cost, time.time()-s])
     
     import pandas as pd
     # 데이터프레임 생성
-    df = pd.DataFrame(results, columns=["inst_name", "cost_1", "cost_2"])
+    df = pd.DataFrame(results, columns=["inst_name", "WT", "C"])
     
     # 엑셀 파일로 저장
     df.to_excel('./tmp.xlsx', index=False)

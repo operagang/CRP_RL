@@ -157,12 +157,13 @@ def parse_container_file(file_path, n_bays, n_rows, n_tiers):
 
 if __name__ == '__main__':
     # Example usage
-    folder_path = "./benchmarks/Lee_instances"  # Replace with the folder containing your files
+    # folder_path = "./benchmarks/Lee_instances"  # Replace with the folder containing your files
+    folder_path = "./benchmarks/Shin_instances"  # Replace with the folder containing your files
     inst_type = "random"
     n_bays = 2
     n_rows = 16
     n_tiers = 6
-    id = 3
+    id = 1
 
     try:
         container_tensor = find_and_process_file(folder_path, inst_type, n_bays, n_rows, n_tiers, id)
