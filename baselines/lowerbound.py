@@ -94,17 +94,24 @@ if __name__ == "__main__":
     from benchmarks.benchmarks import find_and_process_file
 
     # Example usage
-    folder_path = "./benchmarks/Lee_instances"  # Replace with the folder containing your files
+    # folder_path = "./benchmarks/Lee_instances"  # Replace with the folder containing your files
+    # n_rows = 16
+    # results = []
+    # for inst_type in ['random', 'upsidedown']:
+    #     for n_tiers in [6,8]:
+    #         for n_bays in [1,2,4,6,8,10]:
+    #             for id in range(1,6):
+    #                 if n_tiers == 8 and n_bays in [8, 10]:
+    #                     continue
+    #                 if inst_type == 'upsidedown' and id in [3,4,5]:
+    #                     continue
+    folder_path = "./benchmarks/Shin_instances"  # Replace with the folder containing your files
     n_rows = 16
     results = []
     for inst_type in ['random', 'upsidedown']:
         for n_tiers in [6,8]:
-            for n_bays in [1,2,4,6,8,10]:
-                for id in range(1,6):
-                    if n_tiers == 8 and n_bays in [8, 10]:
-                        continue
-                    if inst_type == 'upsidedown' and id in [3,4,5]:
-                        continue
+            for n_bays in [20,30]:
+                for id in range(1,21):
 
                     container_tensor, inst_name = find_and_process_file(folder_path, inst_type, n_bays, n_rows, n_tiers, id)
 
@@ -120,4 +127,4 @@ if __name__ == "__main__":
     df = pd.DataFrame(results, columns=["inst_name", "WT"])
     
     # 엑셀 파일로 저장
-    df.to_excel('./tmp.xlsx', index=False)
+    df.to_excel('./tmp_LB.xlsx', index=False)

@@ -1,0 +1,41 @@
+epochs: 1000
+bay_embedding: True
+lstm: True
+baseline: pomoZ
+batch_size: 128
+n_layouts_per_batch: 4
+min_n_containers: 35
+max_n_containers: 70
+large_n_layouts_per_batch: 1
+large_min_n_containers: 70
+large_max_n_containers: 140
+max_retrievals: 70
+lower_bound_weight: 10
+load_model_path: ./results/f.attn_multi_pomoZ/models/epoch(100).pt
+lr: 0.00030000000000000003
+batch_num: 100
+pomo_size: 16
+eval_path: ./generator/eval_data/eval_data(35,2,4,6).pt
+eval_batch_size: 1024
+empty_priority: None
+norm_priority: True
+add_fill_ratio: True
+norm_layout: True
+add_layout_ratio: True
+add_travel_time: True
+instance_type: random
+objective: workingtime
+embed_dim: 128
+n_encode_layers: 3
+n_heads: 8
+ff_hidden: 512
+tanh_c: 10
+device: cuda:0
+log_path: ./results/20250613_192445
+--------------------
+Epoch: 0 | Train loss: None | Eval WT: 3008.847 | Eval relocs: 29.435 | 2s
+Epoch: 1 | Train loss: -0.10237179810611224 | Eval WT: 3016.247 | Eval relocs: 29.579 | 2680s
+Epoch: 2 | Train loss: -0.1189418988871111 | Eval WT: 3016.184 | Eval relocs: 29.592 | 3453s
+Epoch: 3 | Train loss: -0.135612093558704 | Eval WT: 3009.514 | Eval relocs: 29.489 | 4864s
+Epoch: 4 | Train loss: -0.09079232187358319 | Eval WT: 3015.696 | Eval relocs: 29.47 | 4824s
+Epoch: 5 | Train loss: -0.1044343363994972 | Eval WT: 3015.262 | Eval relocs: 29.647 | 6518s

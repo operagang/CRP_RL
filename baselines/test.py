@@ -45,7 +45,7 @@ args = argparse.Namespace(
     max_retrievals = 70,
     lower_bound_weight = 1,
 
-    load_model_path = './baselines/models/epoch(100).pt',
+    load_model_path = './results/f.attn_multi_pomoZ/models/epoch(100).pt',
 
     #### 이 아래는 안건드려도 될 듯 ####
     lr = None,
@@ -92,7 +92,7 @@ if __name__ == "__main__":
     # rows = [16]
     # tiers = [6,8]
 
-    bays = [20,40]
+    bays = [20]
     rows = [16]
     tiers = [6,8]
 
@@ -129,7 +129,7 @@ if __name__ == "__main__":
                     s = time.time()
                     with torch.no_grad():
                         wt, _, reloc, _ = model(inputs.to(args.device), None)
-                    
+
                     # 이름 정리 및 결과 저장
                     all_names.extend([name.replace('.txt', '') for name in names])
                     all_wts.extend(wt.cpu().numpy())  # GPU에서 CPU로 이동
@@ -141,4 +141,4 @@ if __name__ == "__main__":
         'Instance': all_names,
         'WT': all_wts
     })
-    df.to_excel("all_wt_results.xlsx", index=False)
+    df.to_excel("all_wt_results_online.xlsx", index=False)

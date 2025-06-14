@@ -195,33 +195,38 @@ if __name__ == "__main__":
 
 
     # Example usage
-    folder_path = "./benchmarks/Lee_instances"  # Replace with the folder containing your files
+    # folder_path = "./benchmarks/Lee_instances"  # Replace with the folder containing your files
+    # n_rows = 16
+    # results = []
+    # for inst_type in ['random', 'upsidedown']:
+    #     for n_tiers in [6,8]:
+    #         for n_bays in [1,2,4,6,8,10]:
+    #             for id in range(1,6):
+    #                 if n_tiers == 8 and n_bays in [8, 10]:
+    #                     continue
+    #                 if inst_type == 'upsidedown' and id in [3,4,5]:
+    #                     continue
+    folder_path = "./benchmarks/Shin_instances"  # Replace with the folder containing your files
     n_rows = 16
     results = []
     for inst_type in ['random', 'upsidedown']:
         for n_tiers in [6,8]:
-            for n_bays in [1,2,4,6,8,10]:
-                for id in range(1,6):
-                    if n_tiers == 8 and n_bays in [8, 10]:
-                        continue
-                    if inst_type == 'upsidedown' and id in [3,4,5]:
-                        continue
+            for n_bays in [20,30]:
+                for id in range(1,21):
 
                     container_tensor, inst_name = find_and_process_file(folder_path, inst_type, n_bays, n_rows, n_tiers, id)
 
                     s = time.time()
                     arg = Durasevic2025() # batch 연산 X
+                    wt, moves = arg.run(container_tensor)
 
-                    cost = arg.run(container_tensor)
+                    print(f'inst_name: {inst_name}, cost: {wt}, time: {round(time.time()-s,1)}')
 
-                    print(f'inst_name: {inst_name}')
-                    print(f'cost: {cost}')
-
-                    results.append([inst_name, cost, time.time()-s])
+                    results.append([inst_name, wt, time.time()-s])
     
     import pandas as pd
     # 데이터프레임 생성
     df = pd.DataFrame(results, columns=["inst_name", "WT", "C"])
     
     # 엑셀 파일로 저장
-    df.to_excel('./tmp.xlsx', index=False)
+    df.to_excel('./tmp_GP.xlsx', index=False)

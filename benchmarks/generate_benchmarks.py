@@ -50,7 +50,7 @@ if __name__=='__main__':
     save_path = './benchmarks/Shin_instances'
     
     n_rows = 16
-    for n_bays in [20,40]:
+    for n_bays in [30]:
         for n_tiers in [6,8]:
             for inst_type in ['random', 'upsidedown']:
                 for target_id in range(1,21):
