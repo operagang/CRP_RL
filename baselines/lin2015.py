@@ -19,6 +19,31 @@ class Lin2015():
         self.pr = pr # SSI에 row 관련 weight
         self.pb = pb # SSI에 bay 관련 weight
 
+        """"""
+        self.bay_diff = []
+        self.row_diff = []
+        self.well_located = []
+    
+    """"""
+    def save_log(self, srce_idxs, dest_idxs, env):
+        srce_idxs = srce_idxs[0]
+        dest_idxs = dest_idxs[0]
+        n_bays = env.n_bays
+        n_rows = env.n_rows
+        for i in range(env.empty.shape[0]):
+            if not env.empty[i]:
+                s_bay = srce_idxs[i] // n_rows + 1
+                s_row = srce_idxs[i] % n_rows + 1
+                d_bay = dest_idxs[i] // n_rows + 1
+                d_row = dest_idxs[i] % n_rows + 1
+                self.bay_diff.append(abs(s_bay-d_bay).item())
+                self.row_diff.append(abs(s_row-d_row).item())
+
+                top = env.x[i][srce_idxs[i]][(env.x[i][srce_idxs[i]] != 0).nonzero(as_tuple=True)[0][-1]]
+                d_stack = env.x[i][dest_idxs[i]].clone()
+                d_stack[d_stack == 0] = 100000
+                self.well_located.append((top < d_stack.min()).item())
+
     def get_top_priority(self, x):
         _, num_stacks, max_tiers = x.shape  # (batch, stack, tiers)
         # 0이 아닌 값들을 1로 변환하고, stack의 실제 높이 계산
@@ -124,6 +149,9 @@ class Lin2015():
                             cost += env.step(dest_index, source_index, no_clear=True)
                             self.check_validity(env.x.squeeze())
 
+                            """"""
+                            self.save_log(source_index, dest_index, env)
+
                             stack_len = (env.x > 0).sum(dim=2).squeeze()
                             top_priorities = self.get_top_priority(env.x).squeeze()
                             min_priorities = torch.where(env.x.squeeze() > 0, env.x.squeeze(), n_containers*10).amin(dim=1)
@@ -133,6 +161,9 @@ class Lin2015():
                 source_index = target_stack.unsqueeze(1)
                 cost += env.step(dest_index, source_index, no_clear=True)
                 self.check_validity(env.x.squeeze())
+
+                """"""
+                self.save_log(source_index, dest_index, env)
 
             else:
                 # Rule 3 (no tie)
@@ -146,6 +177,9 @@ class Lin2015():
                 dest_index = best_stack_index.unsqueeze(1)
                 cost += env.step(dest_index, source_index, no_clear=True)
                 self.check_validity(env.x.squeeze())
+
+                """"""
+                self.save_log(source_index, dest_index, env)
 
         moves = n_containers + env.relocations.squeeze().item()
         return cost.squeeze().item(), moves
@@ -195,28 +229,32 @@ if __name__ == "__main__":
     # print(avg_wt, avg_moves)
     # """"""
 
+    # """"""
+    # data_by_instance = {}
+
 
     import time
     from benchmarks.benchmarks import find_and_process_file
     # Example usage
-    # folder_path = "./benchmarks/Lee_instances"  # Replace with the folder containing your files
+    folder_path = "./benchmarks/Lee_instances"  # Replace with the folder containing your files
+    n_rows = 16
+    results = []
+    # for inst_type in ['random', 'upsidedown']:
+    for inst_type in ['random']:
+        for n_tiers in [6,8]:
+            for n_bays in [1,2,4,6,8,10]:
+                for id in range(1,6):
+                    if n_tiers == 8 and n_bays in [8, 10]:
+                        continue
+                    if inst_type == 'upsidedown' and id in [3,4,5]:
+                        continue
+    # folder_path = "./benchmarks/Shin_instances"  # Replace with the folder containing your files
     # n_rows = 16
     # results = []
     # for inst_type in ['random', 'upsidedown']:
     #     for n_tiers in [6,8]:
-    #         for n_bays in [1,2,4,6,8,10]:
-    #             for id in range(1,6):
-    #                 if n_tiers == 8 and n_bays in [8, 10]:
-    #                     continue
-    #                 if inst_type == 'upsidedown' and id in [3,4,5]:
-    #                     continue
-    folder_path = "./benchmarks/Shin_instances"  # Replace with the folder containing your files
-    n_rows = 16
-    results = []
-    for inst_type in ['random', 'upsidedown']:
-        for n_tiers in [6,8]:
-            for n_bays in [20,30]:
-                for id in range(1,21):
+    #         for n_bays in [20,30]:
+    #             for id in range(1,21):
 
                     input, inst_name = find_and_process_file(folder_path, inst_type, n_bays, n_rows, n_tiers, id)
 
@@ -227,6 +265,26 @@ if __name__ == "__main__":
                     print(f'inst_name: {inst_name}, cost: {wt}, time: {round(time.time()-s,1)}')
 
                     results.append([inst_name, wt, time.time()-s])
+
+
+                    # """"""
+                    # if inst_name[:-8] not in data_by_instance:
+                    #     data_by_instance[inst_name[:-8]] = {
+                    #         'well_located':[],
+                    #         'bay_diff':[],
+                    #         'row_diff':[]
+                    #     }
+                    # data_by_instance[inst_name[:-8]]['well_located'].extend(lin.well_located)
+                    # data_by_instance[inst_name[:-8]]['bay_diff'].extend(lin.bay_diff)
+                    # data_by_instance[inst_name[:-8]]['row_diff'].extend(lin.row_diff)
+
+                    pass
+                    
+
+                    
+
+
+
     
     import pandas as pd
     # 데이터프레임 생성
@@ -234,5 +292,50 @@ if __name__ == "__main__":
     
     # 엑셀 파일로 저장
     df.to_excel('./tmp_Lin.xlsx', index=False)
+
+
+
+
+    # """"""
+    # import numpy as np
+    # summary_rows = []
+    # all_bay_diffs = set()
+    # all_row_diffs = set()
+
+    # # First pass to collect all diff values
+    # for instance, data in data_by_instance.items():
+    #     all_bay_diffs.update(data["bay_diff"])
+    #     all_row_diffs.update(data["row_diff"])
+
+    # bay_diff_keys = sorted(all_bay_diffs)
+    # row_diff_keys = sorted(all_row_diffs)
+
+    # # Second pass to build summary
+    # for instance, data in data_by_instance.items():
+    #     row = {"Instance": instance}
+    #     well_located = np.array(data["well_located"])
+    #     bay_diff = np.array(data["bay_diff"])
+    #     row_diff = np.array(data["row_diff"])
+
+    #     row["Total"] = len(well_located)
+    #     row["WellLocated"] = well_located.sum()
+
+    #     for diff in bay_diff_keys:
+    #         mask = bay_diff == diff
+    #         row[f"BayDiff_{diff}_False"] = np.logical_and(mask, ~well_located).sum()
+    #         row[f"BayDiff_{diff}_True"] = np.logical_and(mask, well_located).sum()
+
+    #     for diff in row_diff_keys:
+    #         mask = row_diff == diff
+    #         row[f"RowDiff_{diff}_False"] = np.logical_and(mask, ~well_located).sum()
+    #         row[f"RowDiff_{diff}_True"] = np.logical_and(mask, well_located).sum()
+
+    #     summary_rows.append(row)
+
+    # # Create DataFrame
+    # df_summary = pd.DataFrame(summary_rows)
+    # df_summary.to_excel("log_lin.xlsx", index=False)
+
+
 
     
