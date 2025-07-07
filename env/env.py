@@ -86,81 +86,81 @@ class Env():
 
         return total_cost
 
-    def get_wt_lb(self, idx):
-        curr_bay = self.curr_bay[idx].item()
-        curr_row = self.curr_row[idx].item()
-        x = self.x[idx]
-        assert curr_bay != -1
+    # def get_wt_lb(self, idx):
+    #     curr_bay = self.curr_bay[idx].item()
+    #     curr_row = self.curr_row[idx].item()
+    #     x = self.x[idx]
+    #     assert curr_bay != -1
 
-        # 0이 아닌 값 위치 (row, col)
-        nonzero_pos = (x != 0).nonzero(as_tuple=False)
+    #     # 0이 아닌 값 위치 (row, col)
+    #     nonzero_pos = (x != 0).nonzero(as_tuple=False)
 
-        # if nonzero_pos.numel() == 0:
-        #     return 0.0  # 혹시 아무 컨테이너도 없을 경우 안전 처리
+    #     # if nonzero_pos.numel() == 0:
+    #     #     return 0.0  # 혹시 아무 컨테이너도 없을 경우 안전 처리
 
-        # 그 위치의 값과 행 인덱스를 가져옴
-        values = x[nonzero_pos[:, 0], nonzero_pos[:, 1]]
-        stacks = nonzero_pos[:, 0]
+    #     # 그 위치의 값과 행 인덱스를 가져옴
+    #     values = x[nonzero_pos[:, 0], nonzero_pos[:, 1]]
+    #     stacks = nonzero_pos[:, 0]
 
-        # 값 기준으로 정렬 (작은 값부터)
-        sorted_indices = values.argsort()
-        sorted_stacks = stacks[sorted_indices]
+    #     # 값 기준으로 정렬 (작은 값부터)
+    #     sorted_indices = values.argsort()
+    #     sorted_stacks = stacks[sorted_indices]
 
-        lb1 = 0.0
+    #     lb1 = 0.0
 
-        for stack_tensor in sorted_stacks:
-            stack = stack_tensor.item()
-            next_bay = stack // self.n_rows + 1
-            next_row = stack % self.n_rows + 1
+    #     for stack_tensor in sorted_stacks:
+    #         stack = stack_tensor.item()
+    #         next_bay = stack // self.n_rows + 1
+    #         next_row = stack % self.n_rows + 1
 
-            if curr_bay != next_bay:
-                lb1 += self.t_acc
-                lb1 += self.t_bay * abs(curr_bay - next_bay)
-            lb1 += self.t_row * abs(curr_row - next_row)
-            lb1 += self.t_row * next_row
-            lb1 += self.t_pd
+    #         if curr_bay != next_bay:
+    #             lb1 += self.t_acc
+    #             lb1 += self.t_bay * abs(curr_bay - next_bay)
+    #         lb1 += self.t_row * abs(curr_row - next_row)
+    #         lb1 += self.t_row * next_row
+    #         lb1 += self.t_pd
 
-            curr_bay = next_bay
-            curr_row = 0
+    #         curr_bay = next_bay
+    #         curr_row = 0
 
-        lb2 = (2 * self.t_row + self.t_pd) * self.count_disorder_per_row(x).sum().item()
+    #     lb2 = (2 * self.t_row + self.t_pd) * self.count_disorder_per_row(x).sum().item()
 
-        return lb1 + lb2
+    #     return lb1 + lb2
 
-    def count_disorder_per_row(self, x):
-        # 비교 행렬: i > j인 인덱스 마스크 (아래쪽 인덱스만)
-        i = torch.arange(self.max_tiers, device=x.device).view(1, -1, 1)  # shape (1, S, 1)
-        j = torch.arange(self.max_tiers, device=x.device).view(1, 1, -1)  # shape (1, 1, S)
-        mask = j < i  # shape (1, S, S), True where j < i (i는 위, j는 아래)
+    # def count_disorder_per_row(self, x):
+    #     # 비교 행렬: i > j인 인덱스 마스크 (아래쪽 인덱스만)
+    #     i = torch.arange(self.max_tiers, device=x.device).view(1, -1, 1)  # shape (1, S, 1)
+    #     j = torch.arange(self.max_tiers, device=x.device).view(1, 1, -1)  # shape (1, 1, S)
+    #     mask = j < i  # shape (1, S, S), True where j < i (i는 위, j는 아래)
 
-        x_expanded = x.unsqueeze(2)  # shape (R, S, 1)
-        x_below = x.unsqueeze(1)     # shape (R, 1, S)
+    #     x_expanded = x.unsqueeze(2)  # shape (R, S, 1)
+    #     x_below = x.unsqueeze(1)     # shape (R, 1, S)
 
-        valid = (x_expanded != 0) & (x_below != 0) & mask  # 유효 비교 위치만
+    #     valid = (x_expanded != 0) & (x_below != 0) & mask  # 유효 비교 위치만
 
-        compare = (x_expanded > x_below) & valid  # 위 > 아래 인 경우만
+    #     compare = (x_expanded > x_below) & valid  # 위 > 아래 인 경우만
 
-        disorder_flag = compare.any(dim=2)  # shape (R, S), 각 위치에 대해 아래에 더 작은 게 있는지
+    #     disorder_flag = compare.any(dim=2)  # shape (R, S), 각 위치에 대해 아래에 더 작은 게 있는지
 
-        count = disorder_flag.sum(dim=1)  # row별 합산
-        return count
+    #     count = disorder_flag.sum(dim=1)  # row별 합산
+    #     return count
 
-    def update_early_stopped(self):
-        mask = (~self.early_stopped) & (~self.empty) & (self.retrievals >= self.max_retrievals)
-        idxs = torch.nonzero(mask, as_tuple=False)
+    # def update_early_stopped(self):
+    #     mask = (~self.early_stopped) & (~self.empty) & (self.retrievals >= self.max_retrievals)
+    #     idxs = torch.nonzero(mask, as_tuple=False)
 
-        if idxs.numel() == 0:
-            return
+    #     if idxs.numel() == 0:
+    #         return
 
-        if idxs.dim() > 1:
-            idxs = idxs.squeeze(-1) 
+    #     if idxs.dim() > 1:
+    #         idxs = idxs.squeeze(-1) 
 
-        self.early_stopped[idxs] = True
+    #     self.early_stopped[idxs] = True
 
-        for idx in idxs.tolist():
-            self.wt_lb[idx] = self.get_wt_lb(idx)
+    #     for idx in idxs.tolist():
+    #         self.wt_lb[idx] = self.get_wt_lb(idx)
 
-        pass
+    #     pass
 
     def clear(self):
         #Retrieve 진행
@@ -200,8 +200,8 @@ class Env():
         self._update_empty()
         # self.last_retrieved_nums = retrieved_blocks
 
-        if self.max_retrievals:
-            self.update_early_stopped()
+        # if self.max_retrievals: # max_retrievals 만큼만 회수하고 일찍 종료하는 기능
+        #     self.update_early_stopped()
 
         return retrieve_cost
     

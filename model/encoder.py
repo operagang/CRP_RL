@@ -70,31 +70,31 @@ class ScaledDotProductAttention(nn.Module): #Tsp_Attention.ipynb
 
         return output, attn_dist
 
-class SingleHeadAttention(nn.Module):
-    def __init__(self, clip=10, head_depth=16, inf=1e+10, **kwargs):
-        super().__init__(**kwargs)
-        self.clip = clip
-        self.inf = inf
-        self.scale = math.sqrt(head_depth)
+# class SingleHeadAttention(nn.Module):
+#     def __init__(self, clip=10, head_depth=16, inf=1e+10, **kwargs):
+#         super().__init__(**kwargs)
+#         self.clip = clip
+#         self.inf = inf
+#         self.scale = math.sqrt(head_depth)
 
-    # self.tanh = nn.Tanh()
+#     # self.tanh = nn.Tanh()
 
-    def forward(self, x, mask=None):
-        """ Q: (batch, n_heads, q_seq(=max_stacks or =1), head_depth)
-            K: (batch, n_heads, k_seq(=max_stacks), head_depth)
-            logits: (batch, n_heads, q_seq(this could be 1), k_seq)
-            mask: (batch, max_stacks, 1), e.g. tf.Tensor([[ True], [ True], [False]])
-            mask[:,None,None,:,0]: (batch, 1, 1, stacks) ==> broadcast depending on logits shape
-            [True] -> [1 * -np.inf], [False] -> [logits]
-            K.transpose(-1,-2).size() == K.permute(0,1,-1,-2).size()
-        """
-        Q, K, V = x
-        logits = torch.matmul(Q, K.transpose(-1, -2)) / self.scale
-        logits = self.clip * torch.tanh(logits)
+#     def forward(self, x, mask=None):
+#         """ Q: (batch, n_heads, q_seq(=max_stacks or =1), head_depth)
+#             K: (batch, n_heads, k_seq(=max_stacks), head_depth)
+#             logits: (batch, n_heads, q_seq(this could be 1), k_seq)
+#             mask: (batch, max_stacks, 1), e.g. tf.Tensor([[ True], [ True], [False]])
+#             mask[:,None,None,:,0]: (batch, 1, 1, stacks) ==> broadcast depending on logits shape
+#             [True] -> [1 * -np.inf], [False] -> [logits]
+#             K.transpose(-1,-2).size() == K.permute(0,1,-1,-2).size()
+#         """
+#         Q, K, V = x
+#         logits = torch.matmul(Q, K.transpose(-1, -2)) / self.scale
+#         logits = self.clip * torch.tanh(logits)
 
-        if mask is not None:
-            return logits.masked_fill(mask.permute(0, 2, 1) == True, -self.inf)
-        return logits
+#         if mask is not None:
+#             return logits.masked_fill(mask.permute(0, 2, 1) == True, -self.inf)
+#         return logits
 
 class MultiHeadAttention(nn.Module):
     """ Skip_Connection 은 Built_in 되어있습니다.
@@ -479,7 +479,7 @@ class Encoder(nn.Module):
     def forward(self, x, n_bays, n_rows, t_acc, t_bay, t_row, t_pd, mask=None):
         batch,stack,tier = x.size()
 
-        if not self.lstm:
+        if not self.lstm: # lstm을 쓰지 않을때 empty slot을 어떤 값으로 채울지 비교해본 부분
             if self.empty_priority is None:
                 empty_priority = torch.sum(x > 0, dim=[1,2]).view(x.shape[0], 1, 1) + 1
             else:
@@ -489,27 +489,26 @@ class Encoder(nn.Module):
             x = self.en(x, tier, empty_priority, t_acc, t_bay, t_row, t_pd, batch, stack, n_bays, n_rows).to(self.device)
 
         else:
-            empty_priority = torch.sum(x > 0, dim=[1,2]).view(x.shape[0], 1, 1) + 1
+            empty_priority = torch.sum(x > 0, dim=[1,2]).view(x.shape[0], 1, 1) + 1 # en2 함수에서 연산 편의성을 위해 empty slot을 N+1로 설정
+            # en2: 스택의 위치정보를 고려한 feature 추출
             x2 = self.en2(x, tier, empty_priority, t_acc, t_bay, t_row, t_pd, batch, stack, n_bays, n_rows).to(self.device)
 
+            # 아래가 LSTM 과정
             x = x.clone()
-            x = torch.where(x > 0, 1 - (x - 1) / x.amax(dim=(1, 2), keepdim=True), x)
+            x = torch.where(x > 0, 1 - (x - 1) / x.amax(dim=(1, 2), keepdim=True), x) # priority 역전 및 정규화
             x = x.view(batch, stack, tier, 1)
 
-            asc = self.pos_enc(torch.linspace(0, 1, tier, device=self.device).repeat(batch, stack, 1).unsqueeze(-1))
-            # desc = self.pos_enc2(torch.linspace(1, 0, tier, device=self.device).repeat(batch, stack, 1).unsqueeze(-1))
-
-            # x = torch.cat([x, asc, desc], dim=3)
+            asc = self.pos_enc(torch.linspace(0, 1, tier, device=self.device).repeat(batch, stack, 1).unsqueeze(-1)) # 높이 정보
             x = torch.cat([x, asc], dim=3)
-            x = self.init_stack_emb(x)
+            x = self.init_stack_emb(x) # 각 tier 별로, 정규화된 priority + 높이 정보 -> 128 차원 벡터
             x = x.view(batch * stack, tier, self.embed_dim)
-            output, (hidden_states, _) = self.LSTM(x)
+            output, (hidden_states, _) = self.LSTM(x) # output: 각 LSTM layer의 output, hidden_states: 마지막 LSTM layer의 output
             o = torch.mean(output, dim=1).view(batch, stack, self.embed_dim)
             h = hidden_states[0,:,:].view(batch, stack, self.embed_dim)
             x = torch.cat([o,h], dim=2)
             x = self.LSTM_embed(x)
 
-            x = torch.cat([x, x2], dim=2)
+            x = torch.cat([x, x2], dim=2) # LSTM 결과 x와 x2를 합침
             x = self.fcs3(x)
 
             pass
@@ -518,9 +517,9 @@ class Encoder(nn.Module):
 
 
         for i, layer in enumerate(self.encoder_layers):
-            x = layer(x, mask)
+            x = layer(x, mask) # MHT에 input
 
-            if self.bay_embedding:
+            if self.bay_embedding: # bay 내 stack embedding의 평균값 산출 및 각 stack에 bay embedding을 concat
                 x_reshaped = x.view(x.shape[0], n_bays, n_rows, x.shape[-1])
                 bay_emb = x_reshaped.mean(dim=2)
                 bay_emb = bay_emb.unsqueeze(2).repeat(1, 1, n_rows, 1).reshape(bay_emb.shape[0], -1, bay_emb.shape[-1])

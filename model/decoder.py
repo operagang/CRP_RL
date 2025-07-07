@@ -64,10 +64,10 @@ class Decoder(nn.Module):
         batch, n_bays, n_rows, max_tiers = x.size()
         max_stacks = n_bays * n_rows
 
-        cost = torch.zeros(batch).to(self.device)
-        ll = torch.zeros(batch).to(self.device)
+        cost = torch.zeros(batch).to(self.device) # mini_batch * pomo_size 수
+        ll = torch.zeros(batch).to(self.device) # mini_batch * pomo_size 수
 
-        env = Env(self.device, x, max_retrievals)
+        env = Env(self.device, x, max_retrievals) # max_retrievals 의미 X
 
         cost = cost + env.clear()
 
@@ -86,32 +86,33 @@ class Decoder(nn.Module):
         """"""""""""""""""""""""""""""""""""
 
         node_embeddings, graph_embedding = encoder_output
-        target_embeddings = node_embeddings[torch.arange(node_embeddings.size(0)), env.target_stack, :]
+        target_embeddings = node_embeddings[torch.arange(node_embeddings.size(0)), env.target_stack, :] # target stack의 embedding
         mask = env.create_mask()
 
         for i in range(max_stacks * max_tiers * max_tiers): # upper bound of relocations
             assert i < max_stacks * max_tiers * max_tiers - 1, "끝까지 empty 되지 않음"
 
             # decoder
+            # context vector는 target embedding과 global embedding으로 구성
             context = (self.W_target(target_embeddings) + self.W_global(graph_embedding)).unsqueeze(1)
             node_keys = self.W_K1(node_embeddings)
             node_values = self.W_V(node_embeddings)
-            query_ = self.W_Q(self.MHA([context, node_keys, node_values]))
+            query_ = self.W_Q(self.MHA([context, node_keys, node_values])) # MHA를 통한 context vector 업데이트
             key_ = self.W_K2(node_embeddings)
 
             logits = torch.matmul(query_, key_.permute(0, 2, 1)).squeeze(1) / math.sqrt(query_.size(-1))
             logits = self.tanh_c * torch.tanh(logits)
             logits = logits - mask.squeeze(-1) * 1e9
-            log_p = torch.log_softmax(logits, dim=1)
+            log_p = torch.log_softmax(logits, dim=1) # action 선택 확률의 log값
 
-            actions = self.sampler(log_p)
+            actions = self.sampler(log_p) # action 선택
 
             # """"""
             # self.save_log(actions, env)
 
             tmp_log_p = log_p.clone()
-            tmp_log_p[(env.empty | env.early_stopped), :] = 0 # 반드시 step 이전에
-            ll = ll + torch.gather(input=tmp_log_p, dim=1, index=actions).squeeze(-1).to(self.device)
+            tmp_log_p[(env.empty | env.early_stopped), :] = 0 # 이미 종료되었던 문제는 확률값 0으로 (반드시 step 이전에 실행)
+            ll = ll + torch.gather(input=tmp_log_p, dim=1, index=actions).squeeze(-1).to(self.device) # log likelihood
             
             cost = cost + env.step(dest_index=actions)
 
