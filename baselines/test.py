@@ -83,7 +83,7 @@ if __name__ == "__main__":
     if args.load_model_path is not None:
         model.load_state_dict(torch.load(args.load_model_path, map_location=args.device))
         print(f'* Model loaded: ({args.load_model_path})')
-    
+
 
     model.eval()
     model.decoder.set_sampler('greedy')
@@ -92,12 +92,7 @@ if __name__ == "__main__":
     rows = [16]
     tiers = [6,8]
 
-    # bays = [20]
-    # rows = [16]
-    # tiers = [6,8]
-
     data_path = './benchmarks/Lee_instances'
-    # data_path = './benchmarks/Shin_instances'
 
     instance_types = ['random', 'upsidedown']
 
@@ -105,15 +100,8 @@ if __name__ == "__main__":
     all_names = []
     all_wts = []
 
-
-    # """"""
-    # from collections import defaultdict
-    # data_by_instance = defaultdict(dict)
-
-
     for inst_type in instance_types:
-        idxs = range(1,6) if inst_type == 'random' else range(1,3)
-        # idxs = range(1,21)
+        idxs = range(1,21)
 
         data_names = []
         wts = {}
@@ -141,61 +129,9 @@ if __name__ == "__main__":
 
                     print(names[0][:-8], wt.mean().item(), round((time.time()-s)/len(idxs),3))
 
-
-                    # """"""
-                    # data_by_instance[names[0][:-8]]['well_located'] = model.decoder.well_located
-                    # data_by_instance[names[0][:-8]]['bay_diff'] = model.decoder.bay_diff
-                    # data_by_instance[names[0][:-8]]['row_diff'] = model.decoder.row_diff
-                    # model.decoder.well_located = []
-                    # model.decoder.bay_diff = []
-                    # model.decoder.row_diff = []
-
     # DataFrame 생성 및 Excel 저장
     df = pd.DataFrame({
         'Instance': all_names,
         'WT': all_wts
     })
     df.to_excel("tmp_rl.xlsx", index=False)
-
-
-
-
-    # """"""
-    # import numpy as np
-    # summary_rows = []
-    # all_bay_diffs = set()
-    # all_row_diffs = set()
-
-    # # First pass to collect all diff values
-    # for instance, data in data_by_instance.items():
-    #     all_bay_diffs.update(data["bay_diff"])
-    #     all_row_diffs.update(data["row_diff"])
-
-    # bay_diff_keys = sorted(all_bay_diffs)
-    # row_diff_keys = sorted(all_row_diffs)
-
-    # # Second pass to build summary
-    # for instance, data in data_by_instance.items():
-    #     row = {"Instance": instance}
-    #     well_located = np.array(data["well_located"])
-    #     bay_diff = np.array(data["bay_diff"])
-    #     row_diff = np.array(data["row_diff"])
-
-    #     row["Total"] = len(well_located)
-    #     row["WellLocated"] = well_located.sum()
-
-    #     for diff in bay_diff_keys:
-    #         mask = bay_diff == diff
-    #         row[f"BayDiff_{diff}_False"] = np.logical_and(mask, ~well_located).sum()
-    #         row[f"BayDiff_{diff}_True"] = np.logical_and(mask, well_located).sum()
-
-    #     for diff in row_diff_keys:
-    #         mask = row_diff == diff
-    #         row[f"RowDiff_{diff}_False"] = np.logical_and(mask, ~well_located).sum()
-    #         row[f"RowDiff_{diff}_True"] = np.logical_and(mask, well_located).sum()
-
-    #     summary_rows.append(row)
-
-    # # Create DataFrame
-    # df_summary = pd.DataFrame(summary_rows)
-    # df_summary.to_excel("log_rl.xlsx", index=False)

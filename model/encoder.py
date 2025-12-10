@@ -27,13 +27,7 @@ class Normalization(nn.Module): #wounterkool git 참고
         self.normalizer = normalizer_class(embed_dim, affine=True)
 
         # Normalization by default initializes affine parameters with bias 0 and weight unif(0,1) which is too large!
-        # self.init_parameters()
 
-    def init_parameters(self):
-
-        for name, param in self.named_parameters():
-            stdv = 1. / math.sqrt(param.size(-1))
-            param.data.uniform_(-stdv, stdv)
     def forward(self, input):
         if isinstance(self.normalizer, nn.BatchNorm1d):
             return self.normalizer(input.view(-1, input.size(-1))).view(*input.size())
@@ -59,7 +53,7 @@ class ScaledDotProductAttention(nn.Module): #Tsp_Attention.ipynb
         d_k = self.d_k        
         attn_score = torch.matmul(Q, K.transpose(2, 3)) / math.sqrt(d_k) 
                     # dim of attn_score: batchSize x n_heads x seqLen_Q x seqLen_K
-                    #wj) batch matrix multiplication
+                    # wj) batch matrix multiplication
         if mask is None:
             mask = torch.zeros_like(attn_score).bool()
         else:
@@ -69,32 +63,6 @@ class ScaledDotProductAttention(nn.Module): #Tsp_Attention.ipynb
         output = torch.matmul(attn_dist, V)  # dim of output : batchSize x n_heads x seqLen x d_v
 
         return output, attn_dist
-
-# class SingleHeadAttention(nn.Module):
-#     def __init__(self, clip=10, head_depth=16, inf=1e+10, **kwargs):
-#         super().__init__(**kwargs)
-#         self.clip = clip
-#         self.inf = inf
-#         self.scale = math.sqrt(head_depth)
-
-#     # self.tanh = nn.Tanh()
-
-#     def forward(self, x, mask=None):
-#         """ Q: (batch, n_heads, q_seq(=max_stacks or =1), head_depth)
-#             K: (batch, n_heads, k_seq(=max_stacks), head_depth)
-#             logits: (batch, n_heads, q_seq(this could be 1), k_seq)
-#             mask: (batch, max_stacks, 1), e.g. tf.Tensor([[ True], [ True], [False]])
-#             mask[:,None,None,:,0]: (batch, 1, 1, stacks) ==> broadcast depending on logits shape
-#             [True] -> [1 * -np.inf], [False] -> [logits]
-#             K.transpose(-1,-2).size() == K.permute(0,1,-1,-2).size()
-#         """
-#         Q, K, V = x
-#         logits = torch.matmul(Q, K.transpose(-1, -2)) / self.scale
-#         logits = self.clip * torch.tanh(logits)
-
-#         if mask is not None:
-#             return logits.masked_fill(mask.permute(0, 2, 1) == True, -self.inf)
-#         return logits
 
 class MultiHeadAttention(nn.Module):
     """ Skip_Connection 은 Built_in 되어있습니다.
@@ -117,10 +85,7 @@ class MultiHeadAttention(nn.Module):
             self.W_O = nn.Linear(embed_dim, embed_dim, bias=False)
             # self.layerNorm = nn.LayerNorm(embed_dim, 1e-6) # layer normalization
         self.attention = ScaledDotProductAttention(self.d_k)
-        #self.init_parameters()
-    def init_parameters(self):
-        #JK: 필요하다면 구현해야함
-        pass
+
     def forward(self, x, mask=None):
         Q,K,V = x
         batchSize, seqLen_Q, seqLen_K = Q.size(0), Q.size(1), K.size(1) # decoder의 경우 query와 key의 length가 다를 수 있음
@@ -180,38 +145,7 @@ class MultiHeadAttentionLayer(nn.Module): #Self-Attention
         #x = self.FF_sub(self.MHA(x, mask=mask))    
         #######################################    
         return x
-    
-"""
-class MultiHeadAttentionLayer(nn.Module): #Self-Attention
-    
-    def __init__(self, n_heads, embed_dim, ff_hidden, normalization = 'instance', is_encoder=True, init_resweight = 0, resweight_trainable=True):
-        super(MultiHeadAttentionLayer, self).__init__()
-        self.n_heads = n_heads
-        self.resweight = torch.nn.Parameter(torch.Tensor([init_resweight]), requires_grad = resweight_trainable)
-        self.MHA = MultiHeadAttention(n_heads, embed_dim=embed_dim, is_encoder=is_encoder) #Maybe Modified
-        
-        
-        self.FF_sub = nn.Sequential(
-                            nn.Linear(embed_dim, ff_hidden), #bias = True by default
-                            nn.ReLU(),
-                            nn.Linear(ff_hidden, embed_dim)  #bias = True by default
-                        )
 
-    def forward(self, x, mask=None):
-        #######################################
-        #With BatchNorm/InstanceNorm
-        #x = [x,x,x] # Self_Attention
-        #x = self.N1(self.MHA(x, mask=mask))
-        #x = self.N2(self.FF_sub(x))
-        #######################################
-        #######################################
-        #ReZero
-        t = [x,x,x]
-        x = x + self.resweight * self.MHA(t, mask=mask)
-        x = x + self.resweight * self.FF_sub(x)
-        #######################################    
-        return x
-"""
 class Encoder(nn.Module):
     def __init__(self, args):
         super().__init__()

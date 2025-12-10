@@ -206,55 +206,14 @@ def choose_stack_by_travel_time(
 
 
 if __name__ == "__main__":
-    """Option 1"""
-    # # Example usage
-    # from benchmarks.benchmarks import find_and_process_file
-    # folder_path = "./benchmarks/Lee_instances"  # Replace with the folder containing your files
-    # inst_type = "random"
-    # n_bays = 2
-    # n_rows = 16
-    # n_tiers = 6
-    # id = 3
-
-    # input, _ = find_and_process_file(folder_path, inst_type, n_bays, n_rows, n_tiers, id)
-
-    # lin = Lin2015() # batch 연산 X
-    # cost = lin.run(input)
-    # print(cost)
-    """"""
-
-
-    # """Option 2"""
-    # import torch
-    # inputs = torch.load('./results/20250306_174550/eval_data.pt')
-
-    # avg_wt, avg_moves = 0, 0
-    # for i in range(inputs.shape[0]):
-    #     input = inputs[i:i+1]
-    #     lin = Lin2015()
-    #     wt, moves = lin.run(input, restricted=False)
-    #     avg_wt += wt
-    #     avg_moves += moves
-    #     print(i, wt, moves)
-    
-    # avg_wt /= inputs.shape[0]
-    # avg_moves /= inputs.shape[0]
-
-    # print(avg_wt, avg_moves)
-    # """"""
-
-    # """"""
-    # data_by_instance = {}
-
-
     import time
     from benchmarks.benchmarks import find_and_process_file
+
     # Example usage
     folder_path = "./benchmarks/Lee_instances"  # Replace with the folder containing your files
     n_rows = 16
     results = []
     for inst_type in ['random', 'upsidedown']:
-    # for inst_type in ['upsidedown']:
         for n_tiers in [6,8]:
             for n_bays in [1,2,4,6,8,10]:
                 for id in range(1,6):
@@ -262,13 +221,6 @@ if __name__ == "__main__":
                         continue
                     if inst_type == 'upsidedown' and id in [3,4,5]:
                         continue
-    # folder_path = "./benchmarks/Shin_instances"  # Replace with the folder containing your files
-    # n_rows = 16
-    # results = []
-    # for inst_type in ['random', 'upsidedown']:
-    #     for n_tiers in [6,8]:
-    #         for n_bays in [20,30]:
-    #             for id in range(1,21):
 
                     input, inst_name = find_and_process_file(folder_path, inst_type, n_bays, n_rows, n_tiers, id)
 
@@ -280,76 +232,9 @@ if __name__ == "__main__":
 
                     results.append([inst_name, wt, time.time()-s])
 
-
-                    # """"""
-                    # if inst_name[:-8] not in data_by_instance:
-                    #     data_by_instance[inst_name[:-8]] = {
-                    #         'well_located':[],
-                    #         'bay_diff':[],
-                    #         'row_diff':[]
-                    #     }
-                    # data_by_instance[inst_name[:-8]]['well_located'].extend(lin.well_located)
-                    # data_by_instance[inst_name[:-8]]['bay_diff'].extend(lin.bay_diff)
-                    # data_by_instance[inst_name[:-8]]['row_diff'].extend(lin.row_diff)
-
-                    pass
-                    
-
-                    
-
-
-
-    
     import pandas as pd
     # 데이터프레임 생성
     df = pd.DataFrame(results, columns=["inst_name", "WT", "C"])
     
     # 엑셀 파일로 저장
     df.to_excel('./tmp_Leveling.xlsx', index=False)
-
-
-
-
-    # """"""
-    # import numpy as np
-    # summary_rows = []
-    # all_bay_diffs = set()
-    # all_row_diffs = set()
-
-    # # First pass to collect all diff values
-    # for instance, data in data_by_instance.items():
-    #     all_bay_diffs.update(data["bay_diff"])
-    #     all_row_diffs.update(data["row_diff"])
-
-    # bay_diff_keys = sorted(all_bay_diffs)
-    # row_diff_keys = sorted(all_row_diffs)
-
-    # # Second pass to build summary
-    # for instance, data in data_by_instance.items():
-    #     row = {"Instance": instance}
-    #     well_located = np.array(data["well_located"])
-    #     bay_diff = np.array(data["bay_diff"])
-    #     row_diff = np.array(data["row_diff"])
-
-    #     row["Total"] = len(well_located)
-    #     row["WellLocated"] = well_located.sum()
-
-    #     for diff in bay_diff_keys:
-    #         mask = bay_diff == diff
-    #         row[f"BayDiff_{diff}_False"] = np.logical_and(mask, ~well_located).sum()
-    #         row[f"BayDiff_{diff}_True"] = np.logical_and(mask, well_located).sum()
-
-    #     for diff in row_diff_keys:
-    #         mask = row_diff == diff
-    #         row[f"RowDiff_{diff}_False"] = np.logical_and(mask, ~well_located).sum()
-    #         row[f"RowDiff_{diff}_True"] = np.logical_and(mask, well_located).sum()
-
-    #     summary_rows.append(row)
-
-    # # Create DataFrame
-    # df_summary = pd.DataFrame(summary_rows)
-    # df_summary.to_excel("log_lin.xlsx", index=False)
-
-
-
-    

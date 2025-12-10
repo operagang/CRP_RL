@@ -71,29 +71,3 @@ class Generator(Dataset):
 
     def __getitem__(self, index):
         return self.data[index]
-
-
-
-
-if __name__ == '__main__':
-
-    layout = (35,2,4,6)
-    inst_type = 'upsidedown'
-    gen = Generator(
-        load_data=None,
-        seed=0,
-        n_samples=1024,
-        layout=layout,
-        inst_type=inst_type,
-        device=torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    ) 
-    print(gen.data.shape)
-    print(gen.data[0])
-
-    file_name = f'./generator/eval_data/eval_data({layout[0]},{layout[1]},{layout[2]},{layout[3]})_{inst_type}.pt'
-    
-    torch.save(gen.data, file_name)
-
-    data = torch.load(file_name)
-    print(data.shape)
-    print(data[0])

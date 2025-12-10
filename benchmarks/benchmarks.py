@@ -6,7 +6,7 @@ import numpy as np
 
 
 layout_to_n_containers = {
-    (1,16,6)    :70,
+    (1,16,6)    :70, #(bay,row,tier)->container
     (2,16,6)    :140,
     (4,16,6)    :280,
     (6,16,6)    :430,
@@ -153,21 +153,3 @@ def parse_container_file(file_path, n_bays, n_rows, n_tiers):
     # Convert to torch tensor with shape (1, n_bays * n_rows, n_tiers)
     container_tensor = torch.tensor(container_matrix).unsqueeze(0).float()
     return container_tensor.reshape(container_tensor.shape[0], n_bays, n_rows, container_tensor.shape[-1])
-
-
-if __name__ == '__main__':
-    # Example usage
-    # folder_path = "./benchmarks/Lee_instances"  # Replace with the folder containing your files
-    folder_path = "./benchmarks/Shin_instances"  # Replace with the folder containing your files
-    inst_type = "random"
-    n_bays = 2
-    n_rows = 16
-    n_tiers = 6
-    id = 1
-
-    try:
-        container_tensor = find_and_process_file(folder_path, inst_type, n_bays, n_rows, n_tiers, id)
-        print(container_tensor.shape)  # Should be (1, n_bays * n_rows, n_tiers)
-        print(container_tensor)
-    except FileNotFoundError as e:
-        print(e)
