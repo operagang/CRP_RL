@@ -3,12 +3,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # 설정
-file_path = "./ablation(R).xlsx"
+file_path = "./plots/ablation(R).xlsx"
 excel_data = pd.read_excel(file_path, sheet_name=None)
 window = 10  # moving average window
 font_size = 15  # 폰트 사이즈 설정
 # 순서를 명시적으로 지정 (Proposed → 나머지)
-ordered_keys = sorted(excel_data.keys(), key=lambda x: 0 if x == "Proposed" else 1)
+# ordered_keys = sorted(excel_data.keys(), key=lambda x: 0 if x == "Proposed" else 1)
+ordered_keys = ['no SD learning', 'no Attn.', 'no LSTM', 'Proposed']
 
 # 그래프 시작
 plt.figure(figsize=(8, 6))
@@ -45,4 +46,4 @@ plt.yticks(fontsize=font_size)
 plt.legend(fontsize=font_size - 1)
 plt.grid(True)
 plt.tight_layout()
-plt.savefig("./ablation(R).pdf", format="pdf", bbox_inches="tight")
+plt.savefig("./plots/ablation(R).pdf", format="pdf", bbox_inches="tight")

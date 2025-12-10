@@ -101,14 +101,22 @@ class Lin2015():
             if env.all_empty():
                 break
 
-            stack_len = (env.x > 0).sum(dim=2).squeeze()
+            masked_x = env.x.clone()
+
+            # """ online setting """
+            # mask = masked_x > 20
+            # for b in range(masked_x.shape[0]):
+            #     masked_x[b][mask[b]] = 21
+            # """"""""""""""""""""""""
+
+            stack_len = (masked_x > 0).sum(dim=2).squeeze()
             valid_stacks = stack_len < max_tiers
 
-            top_priorities = self.get_top_priority(env.x).squeeze()
-            target_stack = self.get_target_stack(env.x)
+            top_priorities = self.get_top_priority(masked_x).squeeze()
+            target_stack = self.get_target_stack(masked_x)
             target_top_priority = top_priorities[target_stack]
 
-            min_priorities = torch.where(env.x.squeeze() > 0, env.x.squeeze(), n_containers*10).amin(dim=1)
+            min_priorities = torch.where(masked_x.squeeze() > 0, masked_x.squeeze(), n_containers*10).amin(dim=1)
 
             ideal_stacks = (min_priorities > target_top_priority) & valid_stacks
 
@@ -129,7 +137,7 @@ class Lin2015():
                         if max_tiers - stack_len[best_stack_index].squeeze() < 2:
                             break
                         # Top 컨테이너 제외한 데이터 추출 (0이 아닌 값만)
-                        valid_x = torch.where(env.x.squeeze() > 0, env.x.squeeze(), float('inf'))  # 0을 inf로 변환
+                        valid_x = torch.where(masked_x.squeeze() > 0, masked_x.squeeze(), float('inf'))  # 0을 inf로 변환
                         valid_x[indices, stack_len - 1] = float('inf')  # 각 stack의 top priority를 inf로 변경
 
                         # 최솟값 계산
@@ -152,9 +160,17 @@ class Lin2015():
                             """"""
                             self.save_log(source_index, dest_index, env)
 
-                            stack_len = (env.x > 0).sum(dim=2).squeeze()
-                            top_priorities = self.get_top_priority(env.x).squeeze()
-                            min_priorities = torch.where(env.x.squeeze() > 0, env.x.squeeze(), n_containers*10).amin(dim=1)
+                            masked_x = env.x.clone()
+
+                            # """ online setting """
+                            # mask = masked_x > 20
+                            # for b in range(masked_x.shape[0]):
+                            #     masked_x[b][mask[b]] = 21
+                            # """"""""""""""""""""""""
+                            
+                            stack_len = (masked_x > 0).sum(dim=2).squeeze()
+                            top_priorities = self.get_top_priority(masked_x).squeeze()
+                            min_priorities = torch.where(masked_x.squeeze() > 0, masked_x.squeeze(), n_containers*10).amin(dim=1)
                         else:
                             break
 
@@ -172,6 +188,23 @@ class Lin2015():
 
                 max_min_priority = min_priorities[candidate_stacks].max()  # 후보 중 min_priority가 가장 큰 값
                 best_stack_index = torch.where(candidate_stacks & (min_priorities == max_min_priority))[0]
+
+
+
+                # if best_stack_index.shape[0] > 1:
+                #     curr_bay, curr_row =  (target_stack.item() // n_rows) + 1, (target_stack.item() % n_rows) + 1  # target에서 현재위치 정할거면 이런 식으로
+                #     # 혹은 현재 크레인 위치가 따로 관리된다면 그걸 넣으세요.
+
+                #     chosen_idx, chosen_cost, (bay, row) = choose_stack_by_travel_time(
+                #         best_stack_index,
+                #         curr_bay=curr_bay, curr_row=curr_row,
+                #         n_rows=n_rows,
+                #         t_acc=env.t_acc, t_bay=env.t_bay, t_row=env.t_row,
+                #     )
+                #     best_stack_index = torch.tensor([chosen_idx])
+
+
+
                 
                 source_index = target_stack.unsqueeze(1)
                 dest_index = best_stack_index.unsqueeze(1)
@@ -187,7 +220,59 @@ class Lin2015():
 
 
 
+# def choose_stack_by_travel_time(
+#     best_stack_index: torch.Tensor,   # 예: tensor([ 3, 11, 12])
+#     curr_bay: int,                    # 현재 크레인 bay (1-based)
+#     curr_row: int,                    # 현재 크레인 row (1-based)
+#     n_rows: int,                      # 한 bay당 row 수
+#     t_acc: float, t_bay: float, t_row: float,
+#     device=None, generator: torch.Generator | None = None
+# ):
+#     """
+#     1) best_stack_index 후보들의 (bay,row) 계산
+#     2) 이동시간 cost = (bay 다르면 t_acc + |Δbay|*t_bay, 같으면 0) + |Δrow|*t_row
+#     3) 최소 cost 중 랜덤 tie-break
+#     반환: (선택된 stack_idx, 해당 cost, (bay,row))
+#     """
+#     if device is None:
+#         device = best_stack_index.device
 
+#     idx = best_stack_index.to(device)
+
+#     # 1-based bay/row로 변환
+#     bays = idx // n_rows + 1
+#     rows = idx % n_rows + 1
+
+#     curr_bay_t = torch.as_tensor(curr_bay, device=device)
+#     curr_row_t = torch.as_tensor(curr_row, device=device)
+
+#     # 이동시간 계산
+#     bay_diff = (bays - curr_bay_t).abs()
+#     row_diff = (rows - curr_row_t).abs()
+
+#     bay_cost = torch.where(bay_diff != 0,
+#                            torch.as_tensor(t_acc, device=device, dtype=torch.float32) +
+#                            bay_diff.to(torch.float32) * torch.as_tensor(t_bay, device=device, dtype=torch.float32),
+#                            torch.tensor(0.0, device=device))
+
+#     row_cost = row_diff.to(torch.float32) * torch.as_tensor(t_row, device=device, dtype=torch.float32)
+#     cost = bay_cost + row_cost  # 총 이동시간
+
+#     # 최소 cost 후보들 중 랜덤 선택
+#     min_cost = cost.min()
+#     mask = (cost == min_cost)
+#     tie_ids = torch.nonzero(mask, as_tuple=False).squeeze(1)
+
+#     # 균등확률로 하나 뽑기 (재현성 원하면 generator 전달)
+#     pick_pos = torch.randint(0, tie_ids.numel(), (1,), device=device, generator=generator).item()
+#     chosen_pos = tie_ids[pick_pos].item()
+
+#     chosen_idx = idx[chosen_pos].item()
+#     chosen_cost = cost[chosen_pos].item()
+#     chosen_bay = bays[chosen_pos].item()
+#     chosen_row = rows[chosen_pos].item()
+
+#     return chosen_idx, chosen_cost, (chosen_bay, chosen_row)
 
 
 
@@ -239,8 +324,8 @@ if __name__ == "__main__":
     folder_path = "./benchmarks/Lee_instances"  # Replace with the folder containing your files
     n_rows = 16
     results = []
-    # for inst_type in ['random', 'upsidedown']:
-    for inst_type in ['random']:
+    for inst_type in ['random', 'upsidedown']:
+    # for inst_type in ['upsidedown']:
         for n_tiers in [6,8]:
             for n_bays in [1,2,4,6,8,10]:
                 for id in range(1,6):

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # 파일 불러오기
-file_path = './box plot.xlsx'
+file_path = './plots/box plot.xlsx'
 df = pd.read_excel(file_path)
 
 # 컬럼 이름 정리
@@ -30,5 +30,5 @@ for i, scale in enumerate(scales):
     axes[i].set_ylabel('' if i > 0 else 'Gap (%)')
 
 plt.tight_layout()
-plt.savefig("./box.pdf", format="pdf", bbox_inches="tight")
+plt.savefig("./plots/box.pdf", format="pdf", bbox_inches="tight")
 plt.show()

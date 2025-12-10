@@ -32,6 +32,12 @@ class Decoder(nn.Module):
         # self.bay_diff = []
         # self.row_diff = []
         # self.well_located = []
+
+        # mask others with a learnable token
+        # self.visible_k   = getattr(args, 'visible_k', 20)
+        # init_mask_token = float(self.visible_k + 1)
+        # self.mask_token = nn.Parameter(torch.tensor(init_mask_token, device=self.device))
+
     
     # """"""
     # def save_log(self, actions, env):
@@ -83,6 +89,11 @@ class Decoder(nn.Module):
         #     x_new[b][mask[b]] = batch_max[b]
         #     # x_new[b][mask[b]] = 21
         # encoder_output = self.encoder(x_new, n_bays, n_rows, env.t_acc, env.t_bay, env.t_row, env.t_pd)
+
+        # x_new = x.clone()
+        # mask = x_new > self.visible_k
+        # x_new[mask] = self.mask_token
+        # encoder_output = self.encoder(x_new, n_bays, n_rows, env.t_acc, env.t_bay, env.t_row, env.t_pd)
         """"""""""""""""""""""""""""""""""""
 
         node_embeddings, graph_embedding = encoder_output
@@ -130,6 +141,11 @@ class Decoder(nn.Module):
             # for b in range(x_new.shape[0]):
             #     x_new[b][mask[b]] = batch_max[b]
             #     # x_new[b][mask[b]] = 21
+            # encoder_output = self.encoder(x_new, n_bays, n_rows, env.t_acc, env.t_bay, env.t_row, env.t_pd)
+
+            # x_new = x.clone()
+            # mask = x_new > self.visible_k
+            # x_new[mask] = self.mask_token
             # encoder_output = self.encoder(x_new, n_bays, n_rows, env.t_acc, env.t_bay, env.t_row, env.t_pd)
             """"""""""""""""""""""""""""""""""""
 
