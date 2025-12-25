@@ -9,6 +9,20 @@ This repository provides the experimental datasets and code used in the followin
 
 ---
 
+## 0) Installation
+
+Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+(Optional) Install the exact environment used in our experiments:
+```bash
+pip install -r requirements-frozen.txt
+```
+
+---
+
 ## 1) Training with main.py
 
 Training is executed via `main.py`.
