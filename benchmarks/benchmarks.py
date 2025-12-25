@@ -37,7 +37,6 @@ def solve_benchmarks(model, epoch, args, instance_types):
 
         data_names = []
         wts = {}
-        moves = {}
 
         for tier in tiers:
             for row in rows:
@@ -52,19 +51,18 @@ def solve_benchmarks(model, epoch, args, instance_types):
                     inputs = torch.cat(inputs)
 
                     with torch.no_grad():
-                        wt, _, reloc, _ = model(inputs.to(args.device), None)
+                        wt, _ = model(inputs.to(args.device), None)
                     
                     name = names[0][:-8]
                     data_names.append(name)
                     wts[name] = wt.mean().item()
-                    moves[name] = reloc.mean().item() + get_n_containers(bay, row, tier)
 
         if inst_type == 'random':
             file_name = args.log_path + '/benchmark_WT(R).xlsx'
         else:
             file_name = args.log_path + '/benchmark_WT(U).xlsx'
         
-        if not os.path.exists(file_name):  # 파일이 없을 때만 실행
+        if not os.path.exists(file_name):
             df = pd.DataFrame(index=data_names)
             df.to_excel(file_name)
 
@@ -72,7 +70,7 @@ def solve_benchmarks(model, epoch, args, instance_types):
         df[f'Epoch {epoch+1}'] = df.index.map(wts)
         df.to_excel(file_name)
 
-    print(f'Benchmark scoring 시간: {round(time.time() - clock, 1)}s')
+    print(f'Benchmark scoring time: {round(time.time() - clock, 1)}s')
 
 
 def find_and_process_file(folder_path, inst_type, n_bays, n_rows, n_tiers, target_id, no_print=False):

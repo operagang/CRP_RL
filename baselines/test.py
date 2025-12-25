@@ -29,7 +29,7 @@ args = argparse.Namespace(
 
     bay_embedding = True, # bay embedding (avg. pooling) concat 할건지 말건지
     lstm = True, # LSTM 쓸건지 hand-crafted feature 쓸건지
-    baseline = 'pomoZ', # \in {None, 'pomo', 'pomoZ'}
+    baseline = 'proposed', # \in {None, 'pomo', 'proposed'}
 
     # train_data_idx = None, # multi-task learning -> None, 특정 layout -> Int
     # train_data_sampler = 'uniform', # multi-task learning -> uniform, 특정 layout -> None
@@ -121,7 +121,7 @@ if __name__ == "__main__":
 
                     s = time.time()
                     with torch.no_grad():
-                        wt, _, reloc = model(inputs.to(args.device), None)
+                        wt, _ = model(inputs.to(args.device), None)
 
                     # 이름 정리 및 결과 저장
                     all_names.extend([name.replace('.txt', '') for name in names])

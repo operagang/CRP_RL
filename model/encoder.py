@@ -29,7 +29,7 @@ class Normalization(nn.Module):
         elif isinstance(self.normalizer, nn.InstanceNorm1d):
             return self.normalizer(input.permute(0, 2, 1)).permute(0, 2, 1)
         else:
-            assert self.normalizer is None,
+            assert self.normalizer is None
             return input
 
 class ScaledDotProductAttention(nn.Module):
@@ -365,42 +365,44 @@ class Encoder(nn.Module):
     def forward(self, x, n_bays, n_rows, t_acc, t_bay, t_row, t_pd, mask=None):
         batch,stack,tier = x.size()
 
-        if not self.lstm: # lstm을 쓰지 않을때 empty slot을 어떤 값으로 채울지 비교해본 부분
+        if not self.lstm: # how to fill empty slot when not using lstm
             if self.empty_priority is None:
                 empty_priority = torch.sum(x > 0, dim=[1,2]).view(x.shape[0], 1, 1) + 1
             else:
-                assert stack*tier+1 < self.empty_priority, "empty_priority 보다 컨테이너 수가 더 많을 수 있음"
+                assert stack*tier+1 < self.empty_priority
                 empty_priority = torch.full((x.shape[0], 1, 1), self.empty_priority).to(self.device)
 
             x = self.expert_feature(x, tier, empty_priority, t_acc, t_bay, t_row, t_pd, batch, stack, n_bays, n_rows).to(self.device)
 
         else:
-            empty_priority = torch.sum(x > 0, dim=[1,2]).view(x.shape[0], 1, 1) + 1 # en2 함수에서 연산 편의성을 위해 empty slot을 N+1로 설정
-            # en2: 스택의 위치정보를 고려한 feature 추출
+            empty_priority = torch.sum(x > 0, dim=[1,2]).view(x.shape[0], 1, 1) + 1 # change empty values for computational convenience
+
+            # stack position features (row, bay)
             x2 = self.stack_position_feature(x, tier, empty_priority, t_acc, t_bay, t_row, t_pd, batch, stack, n_bays, n_rows).to(self.device)
 
-            # 아래가 LSTM 과정
+            # lstm
             x = x.clone()
-            x = torch.where(x > 0, 1 - (x - 1) / x.amax(dim=(1, 2), keepdim=True), x) # priority 역전 및 정규화
+            x = torch.where(x > 0, 1 - (x - 1) / x.amax(dim=(1, 2), keepdim=True), x)
             x = x.view(batch, stack, tier, 1)
 
-            asc = self.pos_enc(torch.linspace(0, 1, tier, device=self.device).repeat(batch, stack, 1).unsqueeze(-1)) # 높이 정보
+            asc = self.pos_enc(torch.linspace(0, 1, tier, device=self.device).repeat(batch, stack, 1).unsqueeze(-1)) # height info
             x = torch.cat([x, asc], dim=3)
-            x = self.init_stack_emb(x) # 각 tier 별로, 정규화된 priority + 높이 정보 -> 128 차원 벡터
+            x = self.init_stack_emb(x)
             x = x.view(batch * stack, tier, self.embed_dim)
-            output, (hidden_states, _) = self.LSTM(x) # output: 각 LSTM layer의 output, hidden_states: 마지막 LSTM layer의 output
+            output, (hidden_states, _) = self.LSTM(x) # output: each LSTM layer's output, hidden_states: last LSTM layer's output
             o = torch.mean(output, dim=1).view(batch, stack, self.embed_dim)
             h = hidden_states[0,:,:].view(batch, stack, self.embed_dim)
             x = torch.cat([o,h], dim=2)
             x = self.LSTM_embed(x)
 
-            x = torch.cat([x, x2], dim=2) # LSTM 결과 x와 x2를 합침
+            # position + lstm
+            x = torch.cat([x, x2], dim=2)
             x = self.fcs3(x)
 
         for i, layer in enumerate(self.encoder_layers):
-            x = layer(x, mask) # MHT에 input
+            x = layer(x, mask)
 
-            if self.bay_embedding: # bay 내 stack embedding의 평균값 산출 및 각 stack에 bay embedding을 concat
+            if self.bay_embedding: # use bay-wise embedding
                 x_reshaped = x.view(x.shape[0], n_bays, n_rows, x.shape[-1])
                 bay_emb = x_reshaped.mean(dim=2)
                 bay_emb = bay_emb.unsqueeze(2).repeat(1, 1, n_rows, 1).reshape(bay_emb.shape[0], -1, bay_emb.shape[-1])

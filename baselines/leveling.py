@@ -3,11 +3,8 @@ try:
     from env.env import Env
 except:
     import os, sys
-    # 현재 스크립트(`lin2015.py`)가 위치한 디렉터리
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    # 최상위 디렉터리 경로 (현재 스크립트보다 한 단계 위)
     top_level_dir = os.path.abspath(os.path.join(current_dir, ".."))
-    # 최상위 디렉터리를 sys.path에 추가 (실행 중에만 적용됨)
     if top_level_dir not in sys.path:
         sys.path.append(top_level_dir)
     from env.env import Env
@@ -15,42 +12,14 @@ except:
 
 
 class Leveling():
-    def __init__(self, pr=30, pb=300):
-        self.pr = pr # SSI에 row 관련 weight
-        self.pb = pb # SSI에 bay 관련 weight
-
-        """"""
-        self.bay_diff = []
-        self.row_diff = []
-        self.well_located = []
-    
-    """"""
-    def save_log(self, srce_idxs, dest_idxs, env):
-        srce_idxs = srce_idxs[0]
-        dest_idxs = dest_idxs[0]
-        n_bays = env.n_bays
-        n_rows = env.n_rows
-        for i in range(env.empty.shape[0]):
-            if not env.empty[i]:
-                s_bay = srce_idxs[i] // n_rows + 1
-                s_row = srce_idxs[i] % n_rows + 1
-                d_bay = dest_idxs[i] // n_rows + 1
-                d_row = dest_idxs[i] % n_rows + 1
-                self.bay_diff.append(abs(s_bay-d_bay).item())
-                self.row_diff.append(abs(s_row-d_row).item())
-
-                top = env.x[i][srce_idxs[i]][(env.x[i][srce_idxs[i]] != 0).nonzero(as_tuple=True)[0][-1]]
-                d_stack = env.x[i][dest_idxs[i]].clone()
-                d_stack[d_stack == 0] = 100000
-                self.well_located.append((top < d_stack.min()).item())
-
+    def __init__(self):
+        pass
+                
     def get_top_priority(self, x):
         _, num_stacks, max_tiers = x.shape  # (batch, stack, tiers)
-        # 0이 아닌 값들을 1로 변환하고, stack의 실제 높이 계산
-        top_idxs = (x > 0).sum(dim=2) - 1  # 각 stack의 마지막 컨테이너 인덱스
-        # stack이 비어있는 경우, 대체값(num_stacks * max_tiers * 10) 사용
+        top_idxs = (x > 0).sum(dim=2) - 1
         top_priorities = torch.where(
-            top_idxs >= 0,  # 유효한 stack인지 확인
+            top_idxs >= 0,
             x[torch.arange(1).view(-1, 1), torch.arange(num_stacks).view(1, -1), top_idxs], 
             torch.tensor(num_stacks * max_tiers * 10, device=x.device, dtype=x.dtype)
         )
@@ -59,26 +28,26 @@ class Leveling():
     def get_target_stack(self, x):
         _, num_stacks, max_tiers = x.shape  # (batch, stack, tiers)
         mn_val = torch.min(torch.where(x == .0, torch.FloatTensor([1+num_stacks*max_tiers]), x), dim=2)[0]
-        target_stack = torch.argmin(mn_val, dim=1) # mn_val: stack 별 최소값
+        target_stack = torch.argmin(mn_val, dim=1)
         return target_stack
 
     def check_validity(self, x):
-        # ✅ 1. 전체에서 0이 아닌 값들 찾기
-        nonzero_values = x[x > 0].int().tolist()  # 전체에서 0이 아닌 값들 리스트로 저장
-        n = len(nonzero_values)  # 0이 아닌 값들의 전체 개수
+        # 1. find non-zero values
+        nonzero_values = x[x > 0].int().tolist()
+        n = len(nonzero_values)
 
-        # ✅ 2. `1~n`까지의 값이 정확히 하나씩 존재하는지 확인
-        required_values = set(range(1, n + 1))  # {1, 2, ..., n}
-        is_valid = set(nonzero_values) == required_values  # 필요한 값들이 모두 존재하는지 확인
+        # 2. check exactly the values 1 to n exist
+        required_values = set(range(1, n + 1))
+        is_valid = set(nonzero_values) == required_values
 
-        # ✅ 3. 각 stack이 "첫 번째 0이 아닌 값 이후에는 반드시 0이어야 하는지" 체크
+        # 3. check each stack has "0s after the first non-zero value"
         for stack in x:
-            nonzero_idxs = (stack > 0).nonzero(as_tuple=True)[0]  # 첫 번째 0이 아닌 값의 위치 찾기
-            if len(nonzero_idxs) > 0:  # 0이 아닌 값이 존재하는 경우만 체크
-                last_nonzero_idx = nonzero_idxs[-1].item()  # 첫 번째 등장 index
-                if (stack[last_nonzero_idx + 1:] > 0).any():  # 이후 값 중 0이 아닌 값이 존재하면 False
+            nonzero_idxs = (stack > 0).nonzero(as_tuple=True)[0]
+            if len(nonzero_idxs) > 0:
+                last_nonzero_idx = nonzero_idxs[-1].item()
+                if (stack[last_nonzero_idx + 1:] > 0).any():
                     is_valid = False
-                    break  # 하나라도 위반하면 바로 종료
+                    break
 
         if not is_valid:
             raise ValueError(f"not valid env.x: \n{x}")
@@ -110,21 +79,20 @@ class Leveling():
             target_bay = target_stack // n_rows  # 0-based bay index
             bay_mask = (torch.arange(stack_len.size(0), device=stack_len.device) // n_rows) == target_bay
 
-            # 같은 bay 중 valid만
+            # in same bay, only valid stacks
             same_bay_valid = valid_stacks & bay_mask
 
             if same_bay_valid.any():
-                # 같은 bay에서만 선택
+                # in same bay
                 min_len = stack_len[same_bay_valid].min()
                 best_stack_index = torch.nonzero((stack_len == min_len) & same_bay_valid, as_tuple=False).squeeze(1)
             else:
-                # 기존 전체 valid에서 선택
+                # among all valid stacks
                 min_len = stack_len[valid_stacks].min()
                 best_stack_index = torch.nonzero((stack_len == min_len) & valid_stacks, as_tuple=False).squeeze(1)
 
             if best_stack_index.shape[0] > 1:
-                curr_bay, curr_row =  (target_stack.item() // n_rows) + 1, (target_stack.item() % n_rows) + 1  # target에서 현재위치 정할거면 이런 식으로
-                # 혹은 현재 크레인 위치가 따로 관리된다면 그걸 넣으세요.
+                curr_bay, curr_row =  (target_stack.item() // n_rows) + 1, (target_stack.item() % n_rows) + 1
 
                 chosen_idx, chosen_cost, (bay, row) = choose_stack_by_travel_time(
                     best_stack_index,
@@ -140,8 +108,6 @@ class Leveling():
             cost += env.step(dest_index, source_index, no_clear=True)
             self.check_validity(env.x.squeeze())
 
-            """"""
-            self.save_log(source_index, dest_index, env)
 
         moves = n_containers + env.relocations.squeeze().item()
         return cost.squeeze().item(), moves
@@ -150,32 +116,24 @@ class Leveling():
 
 
 def choose_stack_by_travel_time(
-    best_stack_index: torch.Tensor,   # 예: tensor([ 3, 11, 12])
-    curr_bay: int,                    # 현재 크레인 bay (1-based)
-    curr_row: int,                    # 현재 크레인 row (1-based)
-    n_rows: int,                      # 한 bay당 row 수
+    best_stack_index: torch.Tensor,
+    curr_bay: int,
+    curr_row: int,
+    n_rows: int,
     t_acc: float, t_bay: float, t_row: float,
     device=None, generator: torch.Generator | None = None
 ):
-    """
-    1) best_stack_index 후보들의 (bay,row) 계산
-    2) 이동시간 cost = (bay 다르면 t_acc + |Δbay|*t_bay, 같으면 0) + |Δrow|*t_row
-    3) 최소 cost 중 랜덤 tie-break
-    반환: (선택된 stack_idx, 해당 cost, (bay,row))
-    """
     if device is None:
         device = best_stack_index.device
 
     idx = best_stack_index.to(device)
 
-    # 1-based bay/row로 변환
     bays = idx // n_rows + 1
     rows = idx % n_rows + 1
 
     curr_bay_t = torch.as_tensor(curr_bay, device=device)
     curr_row_t = torch.as_tensor(curr_row, device=device)
 
-    # 이동시간 계산
     bay_diff = (bays - curr_bay_t).abs()
     row_diff = (rows - curr_row_t).abs()
 
@@ -185,14 +143,12 @@ def choose_stack_by_travel_time(
                            torch.tensor(0.0, device=device))
 
     row_cost = row_diff.to(torch.float32) * torch.as_tensor(t_row, device=device, dtype=torch.float32)
-    cost = bay_cost + row_cost  # 총 이동시간
+    cost = bay_cost + row_cost
 
-    # 최소 cost 후보들 중 랜덤 선택
     min_cost = cost.min()
     mask = (cost == min_cost)
     tie_ids = torch.nonzero(mask, as_tuple=False).squeeze(1)
 
-    # 균등확률로 하나 뽑기 (재현성 원하면 generator 전달)
     pick_pos = torch.randint(0, tie_ids.numel(), (1,), device=device, generator=generator).item()
     chosen_pos = tie_ids[pick_pos].item()
 
@@ -209,7 +165,6 @@ if __name__ == "__main__":
     import time
     from benchmarks.benchmarks import find_and_process_file
 
-    # Example usage
     folder_path = "./benchmarks/Lee_instances"  # Replace with the folder containing your files
     n_rows = 16
     results = []
@@ -225,7 +180,7 @@ if __name__ == "__main__":
                     input, inst_name = find_and_process_file(folder_path, inst_type, n_bays, n_rows, n_tiers, id)
 
                     s = time.time()
-                    level = Leveling() # batch 연산 X
+                    level = Leveling() # batch X
                     wt, moves = level.run(input)
 
                     print(f'inst_name: {inst_name}, cost: {wt}, time: {round(time.time()-s,1)}')
@@ -233,8 +188,5 @@ if __name__ == "__main__":
                     results.append([inst_name, wt, time.time()-s])
 
     import pandas as pd
-    # 데이터프레임 생성
     df = pd.DataFrame(results, columns=["inst_name", "WT", "C"])
-    
-    # 엑셀 파일로 저장
     df.to_excel('./tmp_Leveling.xlsx', index=False)

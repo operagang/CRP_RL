@@ -24,12 +24,12 @@ class Env():
 
     def find_target_stack(self):
         mn_val = torch.min(torch.where(self.x == .0, torch.FloatTensor([1+self.max_stacks*self.max_tiers]).to(self.device), self.x), dim=2)[0].to(self.device)
-        self.target_stack = torch.argmin(mn_val, dim=1).to(self.device) # mn_val: stack 별 최소값
+        self.target_stack = torch.argmin(mn_val, dim=1).to(self.device)
 
     def _update_empty(self):
-        bottom_val = self.x[:,:,0].to(self.device) # 바닥위에 있는 값들 (batch X max_stacks)
-        batch_mx = torch.max(bottom_val, dim=1)[0].to(self.device) #Max (batch)
-        self.empty = torch.where(batch_mx>0., False, True).to(self.device) #if batch_mx가 0 => Empty
+        bottom_val = self.x[:,:,0].to(self.device) # bottom values
+        batch_mx = torch.max(bottom_val, dim=1)[0].to(self.device) # Max (batch)
+        self.empty = torch.where(batch_mx>0., False, True).to(self.device) # if batch_mx is 0 => Empty
 
     def _retrieve_cost(self):
         target_bay = self.target_stack // self.n_rows + 1
@@ -86,19 +86,19 @@ class Env():
         return total_cost
 
     def clear(self):
-        #Retrieve 진행
+        # Retrieve
         self.find_target_stack()
         retrieve_cost = torch.tensor([0 for _ in range(self.batch)]).to(self.device)
         # retrieved_blocks = torch.zeros([self.batch]).to(self.device)
 
         n,s,t = self.batch, self.max_stacks, self.max_tiers
         binary_x = torch.where(self.x > 0., 1, 0).to(self.device) # Block -> 1 Empty -> 0
-        stack_len = torch.sum(binary_x, dim=2).to(self.device) # Stack의 Length
-        target_stack_len = torch.gather(stack_len, dim=1, index = self.target_stack[:,None].to(self.device)).to(self.device) # target_stack의 높이
+        stack_len = torch.sum(binary_x, dim=2).to(self.device) # stack length
+        target_stack_len = torch.gather(stack_len, dim=1, index = self.target_stack[:,None].to(self.device)).to(self.device) # target_stack height
         stack_mx_index = torch.argmin(torch.where(self.x == .0, torch.FloatTensor([999]).to(self.device), self.x).to(self.device), dim=2).to(self.device)
         target_stack_mx_index = torch.gather(stack_mx_index, dim=1, index=self.target_stack[:,None].to(self.device)).to(self.device)
         clear_mask = ((target_stack_len -1) == target_stack_mx_index).to(self.device)
-        clear_mask = (clear_mask & (torch.where(target_stack_len > 0, True, False))).to(self.device) # 완전히 제거된 그룹은 신경쓸 필요 X
+        clear_mask = (clear_mask & (torch.where(target_stack_len > 0, True, False))).to(self.device) # ignore removed groups
         self.retrieved = clear_mask.squeeze(-1)
         #print('---------------')
         while torch.sum(self.retrieved) > 0:
@@ -110,15 +110,15 @@ class Env():
             # retrieved_blocks += self.retrieved.long().to(self.device)
             self.x = torch.where(self.x > 0, subtracted_x, self.x).to(self.device)
             
-            #Same Again
+            # do again
             self.find_target_stack()
             binary_x = torch.where(self.x > 0., 1, 0).to(self.device) # Block -> 1 Empty -> 0
-            stack_len = torch.sum(binary_x, dim=2).to(self.device)#Stack의 Length
-            target_stack_len = torch.gather(stack_len, dim=1, index = self.target_stack[:,None].to(self.device)).to(self.device) #target_stack의 location
+            stack_len = torch.sum(binary_x, dim=2).to(self.device) # stack length
+            target_stack_len = torch.gather(stack_len, dim=1, index = self.target_stack[:,None].to(self.device)).to(self.device) # target_stack location
             stack_mx_index = torch.argmin(torch.where(self.x == .0, torch.FloatTensor([999]).to(self.device), self.x).to(self.device), dim=2).to(self.device)
             target_stack_mx_index = torch.gather(stack_mx_index, dim=1, index=self.target_stack[:,None].to(self.device)).to(self.device)
             clear_mask = ((target_stack_len -1) == target_stack_mx_index).to(self.device)
-            clear_mask = (clear_mask & (torch.where(target_stack_len > 0, True, False))).to(self.device) # 완전히 제거된 그룹은 신경쓸 필요 X
+            clear_mask = (clear_mask & (torch.where(target_stack_len > 0, True, False))).to(self.device) # ignore removed groups
             self.retrieved = clear_mask.squeeze(-1)
         self._update_empty()
         # self.last_retrieved_nums = retrieved_blocks
