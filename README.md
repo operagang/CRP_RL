@@ -1,6 +1,25 @@
 # Learning-Based Container Retrieval
 
-This repository provides a learning-based framework for the Container Retrieval Problem, including training code, benchmark evaluation, and comparisons with classical heuristic baselines.
+This repository provides the experimental datasets and code used in the following paper:
+
+> **Woo-Jin Shin**, Inguk Choi, Sang-Hyun Cho, Hyun-Jung Kim.  
+> *Learning to Retrieve Containers: A Scale-diverse Deep Reinforcement Learning Approach for the Container Retrieval Problem*.  
+> *Transportation Research Part C: Emerging Technologies*, 2026.
+> [https://doi.org/10.1016/j.trc.2025.105496](https://doi.org/10.1016/j.trc.2025.105496)
+
+---
+
+## 0) Installation
+
+Install dependencies:
+```
+pip install -r requirements.txt
+```
+
+(Optional) Install the exact environment used in our experiments:
+```
+pip install -r requirements-frozen.txt
+```
 
 ---
 
@@ -9,13 +28,9 @@ This repository provides a learning-based framework for the Container Retrieval 
 Training is executed via `main.py`.
 
 Run:
-- `python main.py`
-
-What it does:
-- Initializes the model/optimizer/logging via `initialize(args)`
-- Runs training for `args.epochs` epochs using `train(...)`
-- Saves logs/checkpoints using `save_log(...)`
-- Evaluates the model on benchmark instances using `solve_benchmarks(...)` during training
+```
+python main.py
+```
 
 All hyperparameters and settings are specified in `main.py` through `argparse.Namespace` (e.g., batch sizes, learning rate, instance size range, architecture options, online/offline setting).
 
@@ -90,3 +105,7 @@ Neural network components:
 
 - `trainer.py`
   - Core training loop, optimization logic, logging, and model initialization
+
+---
+
+© 2025 Woo-Jin Shin. The source code is released under the MIT License, and the dataset is released under the Creative Commons Attribution 4.0 International (CC BY 4.0) license. See the LICENSE files for details.
