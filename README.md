@@ -12,7 +12,7 @@ This repository provides the experimental datasets and code used in the followin
 ## 0) Installation
 
 Install dependencies:
-```bash
+```
 pip install -r requirements.txt
 ```
 
