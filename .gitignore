@@ -1,3 +1,8 @@
 results*
 plots/
 generator/eval_data/
+.DF_Store
+*.pyc
+__pycache__/
+*.py[cod]
+*$py.class
