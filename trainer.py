@@ -14,15 +14,8 @@ from model.model import Model
 from generator.generator import Generator
 
 
-def check_args_validity(args):
-    if args.baseline in ['pomo', 'pomoZ']:
-        assert args.pomo_size > 0
-    if args.pomo_size is not None:
-        assert args.baseline in ['pomo', 'pomoZ']
-
 
 def initialize(args):
-    #check_args_validity(args)
     print(f'* Device: {args.device}')
     model = Model(args).to(args.device)
     if args.load_model_path is not None: # 경로가 지정된 경우에만 pre-trained model 호출
@@ -34,7 +27,6 @@ def initialize(args):
     print(f'* lr: {args.lr}, epochs: {args.epochs}')
     print(f'* batch_num: {args.batch_num}, batch_size: {args.batch_size}')
     print(f'* baseline: {args.baseline}, pomo_size: {args.pomo_size}')
-    print(f'* empty_priority: {args.empty_priority}, norm_priority: {args.norm_priority}')
     return model, optimizer, clock
 
 
@@ -54,11 +46,9 @@ def set_log(args):
         f.write('--------------------\n')
 
 
-def save_log(args, epoch, loss, wt, reloc, model, clock):
+def save_log(args, epoch, loss, model, clock):
     new_clock = time.time()
-    message = f'Epoch: {epoch+1} | Train loss: {loss} | Eval WT: {round(wt, 3)} | Eval relocs: '\
-            + f'{round(reloc, 3)} '\
-            + f'| {round(new_clock-clock)}s'
+    message = f'Epoch: {epoch+1} | Train loss: {loss} | {round(new_clock-clock)}s'
     with open(args.log_path + '/log.txt', 'a') as f:
         f.write(message + '\n')
     if (epoch + 1) % 1 == 0:
@@ -88,19 +78,8 @@ def get_loss(args, wt, ll, reloc, mini_batch_num):
         obj_std = obj_reshaped.std(dim=1, keepdim=True, unbiased=False) # 작은 배치에서도 안정적이도록 `unbiased=False` 사용
         obj_adjusted = ((obj_reshaped - obj_mean) / (obj_std + 1e-8)).view(obj.shape[0])
         return (obj_adjusted * ll).mean()
-    # else:
-    #     obj_mean = obj.mean()
-    #     obj_std = obj.std(unbiased=False)  # 작은 배치에서도 안정적이도록 `unbiased=False` 사용
-    #     norm_obj = (obj - obj_mean) / (obj_std + 1e-8)  # 0으로 나누는 문제 방지
-    #     return (norm_obj * ll).mean()
-
-
-# def sample_data_idx(args):
-#     if args.train_data_idx is not None:
-#         return args.train_data_idx
-
-#     if args.train_data_sampler == 'uniform':
-#         return random.randint(0, len(args.max_n_containers) - 1)
+    else:
+        raise ValueError('unexpected baseline')
 
 def sample_layout(min_n_containers, max_n_containers, utilization_range=(0.6, 0.8)):
     while True:
@@ -142,19 +121,14 @@ def train(model, optimizer, args, epoch):
     for step in tbar: # batch_num 만큼 반복
         accumulated_loss = 0.0
 
-        for i in range(args.n_layouts_per_batch): # 한 batch에 대해 여러 layout으로 학습
-            # if i >= args.large_n_layouts_per_batch:
+        for _ in range(args.n_layouts_per_batch): # 한 batch에 대해 여러 layout으로 학습
             n_containers, n_bays, n_rows, n_tiers = sample_layout(min_n_containers=args.min_n_containers, max_n_containers=args.max_n_containers)
-            if n_containers<37:
+            if n_containers<37: # 실험에 사용하는 GPU 메모리를 고려하여 적절히 설정 필요
                 mini_batch_num = 1
             else:
                 mini_batch_num = 2 # 컨테이너 수가 많을 경우 GPU 메모리 부족으로, 2개로 나누어 학습
             max_retrievals = None
-            # else:
-            #     n_containers, n_bays, n_rows, n_tiers = sample_layout(min_n_containers=args.large_min_n_containers, max_n_containers=args.large_max_n_containers)
-            #     mini_batch_num = 4
-            #     assert args.max_retrievals is not None
-            #     max_retrievals = args.max_retrievals
+
             assert type(args.batch_size // args.n_layouts_per_batch // mini_batch_num) == int
             layout = (n_containers, n_bays, n_rows, n_tiers)
             
@@ -171,10 +145,9 @@ def train(model, optimizer, args, epoch):
                     mini_expanded = mini.unsqueeze(1).expand(mini.shape[0], args.pomo_size, mini.shape[1], mini.shape[2], mini.shape[3])
                     mini_expanded = mini_expanded.reshape(mini.shape[0] * args.pomo_size, mini.shape[1], mini.shape[2], mini.shape[3])
                     # wt: working time, ll: log likelihood, reloc: # of relocations, wt_lb: lower bound of remaining working time
-                    wt, ll, reloc, wt_lb = model(mini_expanded.to(args.device), max_retrievals) # mini_batch의 모든 문제 한번에 풀기
+                    wt, ll, reloc = model(mini_expanded.to(args.device), max_retrievals) # mini_batch의 모든 문제 한번에 풀기
                 else:
-                    wt, ll, reloc, wt_lb = model(mini.to(args.device), max_retrievals)
-                # wt = (wt + args.lower_bound_weight * wt_lb).to(args.device)
+                    wt, ll, reloc = model(mini.to(args.device), max_retrievals)
 
                 loss = get_loss(args, wt, ll, reloc, mini_batch_num) / args.n_layouts_per_batch / mini_batch_num # loss 계산
                 loss.backward() # backpropagation 계산
@@ -212,12 +185,4 @@ def eval(model, args, dataset):
             relocs.extend(reloc.tolist())
     print(f'Eval 시간: {round(time.time() - clock, 1)}s')
     return np.mean(wts), np.mean(relocs)
-
-
-
-
-if __name__ == '__main__':
-
-    pass
-
 

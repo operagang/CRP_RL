@@ -21,7 +21,6 @@ class Env():
         self.retrievals = torch.zeros([self.batch]).to(self.device)
         self.max_retrievals = max_retrievals
         self.early_stopped = torch.zeros([self.batch], dtype=torch.bool).to(self.device)
-        self.wt_lb = torch.zeros([self.batch]).to(self.device) # lower bound of crane working time
 
     def find_target_stack(self):
         mn_val = torch.min(torch.where(self.x == .0, torch.FloatTensor([1+self.max_stacks*self.max_tiers]).to(self.device), self.x), dim=2)[0].to(self.device)
@@ -123,9 +122,6 @@ class Env():
             self.retrieved = clear_mask.squeeze(-1)
         self._update_empty()
         # self.last_retrieved_nums = retrieved_blocks
-
-        # if self.max_retrievals: # max_retrievals 만큼만 회수하고 일찍 종료하는 기능
-        #     self.update_early_stopped()
 
         return retrieve_cost
     

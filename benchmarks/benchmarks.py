@@ -60,24 +60,17 @@ def solve_benchmarks(model, epoch, args, instance_types):
                     moves[name] = reloc.mean().item() + get_n_containers(bay, row, tier)
 
         if inst_type == 'random':
-            file_name1 = args.log_path + '/benchmark_WT(R).xlsx'
-            file_name2 = args.log_path + '/benchmark_moves(R).xlsx'
+            file_name = args.log_path + '/benchmark_WT(R).xlsx'
         else:
-            file_name1 = args.log_path + '/benchmark_WT(U).xlsx'
-            file_name2 = args.log_path + '/benchmark_moves(U).xlsx'
+            file_name = args.log_path + '/benchmark_WT(U).xlsx'
         
-        for file_name in [file_name1, file_name2]:
-            if not os.path.exists(file_name):  # 파일이 없을 때만 실행
-                df = pd.DataFrame(index=data_names)
-                df.to_excel(file_name)
+        if not os.path.exists(file_name):  # 파일이 없을 때만 실행
+            df = pd.DataFrame(index=data_names)
+            df.to_excel(file_name)
 
-        df = pd.read_excel(file_name1, index_col=0)
+        df = pd.read_excel(file_name, index_col=0)
         df[f'Epoch {epoch+1}'] = df.index.map(wts)
-        df.to_excel(file_name1)
-
-        df = pd.read_excel(file_name2, index_col=0)
-        df[f'Epoch {epoch+1}'] = df.index.map(moves)
-        df.to_excel(file_name2)
+        df.to_excel(file_name)
 
     print(f'Benchmark scoring 시간: {round(time.time() - clock, 1)}s')
 

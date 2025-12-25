@@ -28,36 +28,12 @@ class Decoder(nn.Module):
         self.W_V = nn.Linear(args.embed_dim, args.embed_dim, bias=False)
         self.MHA = MultiHeadAttention(args.n_heads, args.embed_dim, is_encoder=False)
 
-        # """"""
-        # self.bay_diff = []
-        # self.row_diff = []
-        # self.well_located = []
-
-        # mask others with a learnable token
-        # self.visible_k   = getattr(args, 'visible_k', 20)
-        # init_mask_token = float(self.visible_k + 1)
-        # self.mask_token = nn.Parameter(torch.tensor(init_mask_token, device=self.device))
-
-    
-    # """"""
-    # def save_log(self, actions, env):
-    #     dest_idxs = actions.squeeze()
-    #     n_bays = env.n_bays
-    #     n_rows = env.n_rows
-    #     for i in range(env.empty.shape[0]):
-    #         if not env.empty[i]:
-    #             s_bay = env.target_stack[i] // n_rows + 1
-    #             s_row = env.target_stack[i] % n_rows + 1
-    #             d_bay = dest_idxs[i] // n_rows + 1
-    #             d_row = dest_idxs[i] % n_rows + 1
-    #             self.bay_diff.append(abs(s_bay-d_bay).item())
-    #             self.row_diff.append(abs(s_row-d_row).item())
-
-    #             top = env.x[i][env.target_stack[i]][(env.x[i][env.target_stack[i]] != 0).nonzero(as_tuple=True)[0][-1]]
-    #             d_stack = env.x[i][dest_idxs[i]].clone()
-    #             d_stack[d_stack == 0] = 100000
-    #             self.well_located.append((top < d_stack.min()).item())
-
+        self.online = args.online
+        if self.online:
+            self.online_known_num  = args.online_known_num
+            init_mask_token = float(self.online_known_num + 1)
+            self.mask_token = nn.Parameter(torch.tensor(init_mask_token, device=self.device))
+  
 
 
 
@@ -77,24 +53,13 @@ class Decoder(nn.Module):
 
         cost = cost + env.clear()
 
-        """ 1. encoder """
-        encoder_output = self.encoder(env.x, n_bays, n_rows, env.t_acc, env.t_bay, env.t_row, env.t_pd)
-        """"""""""""""""""
-
-        """ 2. encoder in online setting """
-        # x_new = env.x.clone()
-        # batch_max = x_new.view(x_new.shape[0], -1).amax(dim=1)
-        # mask = x_new > 20  # shape: [5, 16, 6]
-        # for b in range(x_new.shape[0]):
-        #     x_new[b][mask[b]] = batch_max[b]
-        #     # x_new[b][mask[b]] = 21
-        # encoder_output = self.encoder(x_new, n_bays, n_rows, env.t_acc, env.t_bay, env.t_row, env.t_pd)
-
-        # x_new = x.clone()
-        # mask = x_new > self.visible_k
-        # x_new[mask] = self.mask_token
-        # encoder_output = self.encoder(x_new, n_bays, n_rows, env.t_acc, env.t_bay, env.t_row, env.t_pd)
-        """"""""""""""""""""""""""""""""""""
+        if not self.online:
+            encoder_output = self.encoder(env.x, n_bays, n_rows, env.t_acc, env.t_bay, env.t_row, env.t_pd)
+        else:
+            x_new = env.x.clone()
+            mask = x_new > self.online_known_num
+            x_new[mask] = self.mask_token
+            encoder_output = self.encoder(x_new, n_bays, n_rows, env.t_acc, env.t_bay, env.t_row, env.t_pd)
 
         node_embeddings, graph_embedding = encoder_output
         target_embeddings = node_embeddings[torch.arange(node_embeddings.size(0)), env.target_stack, :] # target stack의 embedding
@@ -118,9 +83,6 @@ class Decoder(nn.Module):
 
             actions = self.sampler(log_p) # action 선택
 
-            # """"""
-            # self.save_log(actions, env)
-
             tmp_log_p = log_p.clone()
             tmp_log_p[(env.empty | env.early_stopped), :] = 0 # 이미 종료되었던 문제는 확률값 0으로 (반드시 step 이전에 실행)
             ll = ll + torch.gather(input=tmp_log_p, dim=1, index=actions).squeeze(-1).to(self.device) # log likelihood
@@ -130,30 +92,19 @@ class Decoder(nn.Module):
             if env.all_terminated():
                 break
 
-            """ 1. encoder """
-            encoder_output = self.encoder(env.x, n_bays, n_rows, env.t_acc, env.t_bay, env.t_row, env.t_pd)
-            """"""""""""""""""
-
-            """ 2. encoder in online setting """
-            # x_new = env.x.clone()
-            # batch_max = x_new.view(x_new.shape[0], -1).amax(dim=1)
-            # mask = x_new > 20  # shape: [5, 16, 6]
-            # for b in range(x_new.shape[0]):
-            #     x_new[b][mask[b]] = batch_max[b]
-            #     # x_new[b][mask[b]] = 21
-            # encoder_output = self.encoder(x_new, n_bays, n_rows, env.t_acc, env.t_bay, env.t_row, env.t_pd)
-
-            # x_new = x.clone()
-            # mask = x_new > self.visible_k
-            # x_new[mask] = self.mask_token
-            # encoder_output = self.encoder(x_new, n_bays, n_rows, env.t_acc, env.t_bay, env.t_row, env.t_pd)
-            """"""""""""""""""""""""""""""""""""
+            if not self.online:
+                encoder_output = self.encoder(env.x, n_bays, n_rows, env.t_acc, env.t_bay, env.t_row, env.t_pd)
+            else:
+                x_new = env.x.clone()
+                mask = x_new > self.online_known_num
+                x_new[mask] = self.mask_token
+                encoder_output = self.encoder(x_new, n_bays, n_rows, env.t_acc, env.t_bay, env.t_row, env.t_pd)
 
             node_embeddings, graph_embedding = encoder_output
             target_embeddings = node_embeddings[torch.arange(node_embeddings.size(0)), env.target_stack, :]
             mask = env.create_mask()
 
-        return cost, ll, env.relocations, env.wt_lb
+        return cost, ll, env.relocations
 
 
 

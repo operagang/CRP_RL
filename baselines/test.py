@@ -121,7 +121,7 @@ if __name__ == "__main__":
 
                     s = time.time()
                     with torch.no_grad():
-                        wt, _, reloc, _ = model(inputs.to(args.device), None)
+                        wt, _, reloc = model(inputs.to(args.device), None)
 
                     # 이름 정리 및 결과 저장
                     all_names.extend([name.replace('.txt', '') for name in names])
