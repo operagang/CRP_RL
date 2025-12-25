@@ -17,7 +17,7 @@ pip install -r requirements.txt
 ```
 
 (Optional) Install the exact environment used in our experiments:
-```bash
+```
 pip install -r requirements-frozen.txt
 ```
 
@@ -28,7 +28,9 @@ pip install -r requirements-frozen.txt
 Training is executed via `main.py`.
 
 Run:
-- `python main.py`
+```
+python main.py
+```
 
 All hyperparameters and settings are specified in `main.py` through `argparse.Namespace` (e.g., batch sizes, learning rate, instance size range, architecture options, online/offline setting).
 
