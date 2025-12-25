@@ -16,12 +16,6 @@ Training is executed via `main.py`.
 Run:
 - `python main.py`
 
-What it does:
-- Initializes the model/optimizer/logging via `initialize(args)`
-- Runs training for `args.epochs` epochs using `train(...)`
-- Saves logs/checkpoints using `save_log(...)`
-- Evaluates the model on benchmark instances using `solve_benchmarks(...)` during training
-
 All hyperparameters and settings are specified in `main.py` through `argparse.Namespace` (e.g., batch sizes, learning rate, instance size range, architecture options, online/offline setting).
 
 ---
@@ -95,3 +89,7 @@ Neural network components:
 
 - `trainer.py`
   - Core training loop, optimization logic, logging, and model initialization
+
+---
+
+© 2025 Woo-Jin Shin. The source code is released under the MIT License, and the dataset is released under the Creative Commons Attribution 4.0 International (CC BY 4.0) license. See the LICENSE files for details.
