@@ -23,58 +23,33 @@ except:
 
 
 
+
+
 args = argparse.Namespace(
-
-    epochs = 1000,
-
-    bay_embedding = True, # bay embedding (avg. pooling) concat 할건지 말건지
-    lstm = True, # LSTM 쓸건지 hand-crafted feature 쓸건지
-    baseline = 'proposed', # \in {None, 'pomo', 'proposed'}
-
-    # train_data_idx = None, # multi-task learning -> None, 특정 layout -> Int
-    # train_data_sampler = 'uniform', # multi-task learning -> uniform, 특정 layout -> None
-
-    batch_size = 128,
-    n_layouts_per_batch = 4,
-    min_n_containers = 35, # 최소 컨테이너 수
-    max_n_containers = 70, # 최대 컨테이너 수
-
-    large_n_layouts_per_batch = 1,
-    large_min_n_containers = 70, # 최소 컨테이너 수
-    large_max_n_containers = 140, # 최대 컨테이너 수
-    max_retrievals = 70,
-    lower_bound_weight = 1,
-
-    load_model_path = './baselines/models/proposed/epoch(100).pt',
-
-    #### 이 아래는 안건드려도 될 듯 ####
-    lr = None,
-
-    batch_num = 100,
-    pomo_size = 16,
-
-    eval_path = './generator/eval_data/eval_data(35,2,4,6).pt',
-    eval_batch_size = 1024,
-
-    empty_priority = None, # None or any integer (lstm 시 영향 X)
-    norm_priority = True, # (lstm 시 영향 X)
-    add_fill_ratio = True,
-    norm_layout = True,
-    add_layout_ratio = True,
-    add_travel_time = True,
-
-    instance_type = 'random',
-    objective = 'workingtime', # workingtime or relocations
-
-    embed_dim = 128,
-    n_encode_layers = 3,
-    n_heads = 8,
-    ff_hidden = 512,
-    tanh_c = 10,
-
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu'),
-    log_path = None,
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu'),   # training device
+    log_path = f"./results/{datetime.now().strftime('%Y%m%d_%H%M%S')}",        # log / result directory
+    load_model_path = './baselines/models/proposed/epoch(100).pt',             # pretrained model path
+    epochs = 1000,                                                             # number of training epochs
+    batch_num = 100,                                                           # number of batches per epoch
+    batch_size = 128,                                                          # batch size
+    pomo_size = 16,                                                            # POMO rollout size
+    lr = 3*1e-4,                                                               # learning rate
+    baseline = 'proposed',                                                     # baseline type: {None, 'pomo', 'proposed'}
+    instance_type = 'random',                                                  # training instance type
+    n_layouts_per_batch = 4,                                                   # number of layouts per batch
+    min_n_containers = 35,                                                     # minimum number of containers in traning instances
+    max_n_containers = 70,                                                     # maximum number of containers in traning instances
+    embed_dim = 128,                                                           # embedding dimension
+    n_encode_layers = 3,                                                       # number of encoder layers
+    n_heads = 8,                                                               # number of attention heads
+    ff_hidden = 512,                                                           # hidden dimension of feed-forward layers
+    tanh_c = 10,                                                               # tanh clipping value
+    lstm = True,                                                               # use LSTM (otherwise hand-crafted features)
+    bay_embedding = True,                                                      # concatenate bay embedding
+    online = False,                                                            # enable online setting
+    online_known_num = None                                                    # number of known future requests (online)
 )
+
 
 
 
@@ -101,11 +76,13 @@ if __name__ == "__main__":
     all_wts = []
 
     for inst_type in instance_types:
-        idxs = range(1,21)
+        if inst_type == 'random':
+            idxs = range(1,6)
+        else:
+            idxs = range(1,3)
 
         data_names = []
         wts = {}
-        moves = {}
 
         for tier in tiers:
             for row in rows:
@@ -123,13 +100,11 @@ if __name__ == "__main__":
                     with torch.no_grad():
                         wt, _ = model(inputs.to(args.device), None)
 
-                    # 이름 정리 및 결과 저장
                     all_names.extend([name.replace('.txt', '') for name in names])
-                    all_wts.extend(wt.cpu().numpy())  # GPU에서 CPU로 이동
+                    all_wts.extend(wt.cpu().numpy())
 
                     print(names[0][:-8], wt.mean().item(), round((time.time()-s)/len(idxs),3))
 
-    # DataFrame 생성 및 Excel 저장
     df = pd.DataFrame({
         'Instance': all_names,
         'WT': all_wts
