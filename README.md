@@ -1,6 +1,11 @@
 # Learning-Based Container Retrieval
 
-This repository provides a learning-based framework for the Container Retrieval Problem, including training code, benchmark evaluation, and comparisons with classical heuristic baselines.
+This repository provides the experimental datasets and code used in the following paper:
+
+> **Woo-Jin Shin**, Inguk Choi, Sang-Hyun Cho, Hyun-Jung Kim.  
+> *Learning to Retrieve Containers: A Scale-diverse Deep Reinforcement Learning Approach for the Container Retrieval Problem*.  
+> *Transportation Research Part C: Emerging Technologies*, 2026.
+> [https://doi.org/10.1016/j.trc.2025.105496](https://doi.org/10.1016/j.trc.2025.105496)
 
 ---
 
